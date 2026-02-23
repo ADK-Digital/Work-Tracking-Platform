@@ -1,0 +1,1244 @@
+/*
+ * Ember & Ivy — Stylesheet
+ *
+ * Dark palette with warm ember accents, glassmorphism cards, and scoped styles.
+ * All classes are prefixed with `.ei-` and wrapped by `.ei-root` for isolation.
+ */
+
+/*------------------------------
+  Root & Reset
+------------------------------*/
+.ei-root {
+  --ei-color-bg: #0e0f12;
+  --ei-color-primary: #d86b36;
+  --ei-color-secondary: #f29f5c;
+  --ei-color-text: #f2f2f2;
+  --ei-color-muted: rgba(242, 242, 242, 0.7);
+  --ei-card-bg: rgba(255, 255, 255, 0.05);
+  --ei-blur: 12px;
+  --ei-radius: 0.75rem;
+  --ei-max-width: 1280px;
+  --ei-spacing-xs: 0.25rem;
+  --ei-spacing-s: 0.5rem;
+  --ei-spacing-m: 1rem;
+  --ei-spacing-l: 2rem;
+  --ei-spacing-xl: 3rem;
+  color: var(--ei-color-text);
+  background-color: var(--ei-color-bg);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+.ei-root * { box-sizing: border-box; }
+.ei-root img { display: block; max-width: 100%; height: auto; }
+
+/* Anchor defaults */
+.ei-root a { color: var(--ei-color-secondary); text-decoration: none; }
+.ei-root a:hover, .ei-root a:focus { text-decoration: underline; }
+
+/* Disable body scroll when modals or nav are open */
+.ei-modal-open { overflow: hidden; }
+
+
+/* ===============================================
+   ADK-style Header & Nav (scoped to Ember & Ivy)
+   =============================================== */
+.ei-root .container{ width:100%; max-width:var(--ei-max-width); margin-inline:auto; padding-inline:var(--ei-spacing-l); }
+
+.ei-root .header{
+  position: sticky; top: 0; z-index: 1000;
+  background: rgba(14,15,18,.8);
+  backdrop-filter: blur(var(--ei-blur));
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.ei-root .header__container{
+  height: 64px; display:flex; align-items:center; gap:.75rem;
+}
+
+.ei-root .nav__logo{ height: 32px; width:auto; display:block; }
+.ei-root .nav__link--brand{ display:inline-flex; align-items:center; }
+
+.ei-root .header__toggle{
+  margin-left:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  border-radius:10px;
+  /* Dark charcoal background for the mobile toggle button instead of light tone */
+  background-color: rgba(17,17,17,0.85);
+  color: var(--ei-color-text);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.ei-root .header__toggle i{ font-size:20px; }
+
+/* nav list */
+.ei-root .header__nav{ flex:1; }
+.ei-root .nav__list{
+  display:flex; align-items:center; justify-content:center; gap:1rem;
+  padding:0; margin:0; list-style:none;
+}
+.ei-root .nav__link{
+  display:inline-block; padding:.5rem .75rem; border-radius:10px;
+  color: var(--ei-color-text); font-size: clamp(1rem, 0.95rem + 0.35vw, 1.25rem); font-weight:600; text-decoration:none;
+}
+.ei-root .nav__link:hover,
+.ei-root .nav__link:focus-visible{ background: rgba(255,255,255,.06); }
+
+/* ---- Mobile (base): show brand, hide the rest until toggled ---- */
+.ei-root .nav__item--brand{ margin-right:auto; }
+.ei-root .header__nav .nav__item:not(.nav__item--brand){ display:none; }
+
+/* When the menu is active on mobile, use a dropdown panel that stays in-frame */
+.ei-root .header__nav.header__nav--active{
+  position: fixed; inset: 64px 0 auto 0;  /* uses the header height */
+  background: rgba(14,15,18,.98);
+  border-top: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 1rem 1.25rem 1.25rem;
+}
+.ei-root .header__nav.header__nav--active .nav__list{
+  justify-content:flex-start; flex-direction:column; align-items:stretch; gap:.25rem;
+}
+.ei-root .header__nav.header__nav--active .nav__item{ display:block; }
+.ei-root .header__nav.header__nav--active .nav__item--brand{ display:none; } /* brand is already visible in the header */
+
+/* ---- Desktop (≥768px): show everything inline; hide the toggle ---- */
+@media (min-width:768px){
+  .ei-root .header__toggle{ display:none; }
+  .ei-root .header__nav{ position: static; }
+  .ei-root .nav__list{ justify-content:center; gap:1.25rem; }
+  .ei-root .header__nav .nav__item{ display:block; }
+  .ei-root .header__nav .nav__item--brand{ margin-right:0; }
+}
+
+/* Optional: style when scrolled */
+.ei-root .header--scrolled{
+  background: rgba(14,15,18,.9);
+  box-shadow: 0 4px 20px rgba(0,0,0,.35);
+}
+/*------------------------------
+  Header & Navigation
+------------------------------*/
+.ei-header {
+  position: sticky; top: 0; width: 100%; z-index: 1000;
+  backdrop-filter: blur(var(--ei-blur));
+  background-color: rgba(14, 15, 18, 0.6);
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+.ei-header--scrolled {
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  background-color: rgba(14, 15, 18, 0.85);
+}
+
+/* Mobile-first: space between logo and hamburger; links live in a drawer */
+.ei-header__inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--ei-spacing-l);
+  max-width: var(--ei-max-width); margin: 0 auto; padding: var(--ei-spacing-s) var(--ei-spacing-l);
+}
+.ei-header__logo img { width: 42px; height: auto; }
+
+/* Base nav link styles */
+.ei-nav__list { list-style: none; padding: 0; margin: 0; }
+.ei-nav__item { position: relative; }
+.ei-nav__link {
+  font-size: 0.875rem; font-weight: 500; color: var(--ei-color-text);
+  text-decoration: none; padding: var(--ei-spacing-xs) var(--ei-spacing-s); position: relative;
+}
+/* Underline animation */
+.ei-nav__link::after {
+  content: ''; position: absolute; left: 0; bottom: -2px; width: 0; height: 2px;
+  background: var(--ei-color-secondary); transition: width 0.3s ease;
+}
+.ei-nav__link:hover::after, .ei-nav__link:focus::after { width: 100%; }
+
+/* Active state */
+.ei-nav__link[aria-current="true"] { color: var(--ei-color-secondary); }
+.ei-nav__link[aria-current="true"]::after { width: 100%; }
+
+/* Mobile toggle (visible on mobile) */
+
+
+/*------------------------------
+  Hero Section
+------------------------------*/
+.ei-hero {
+  position: relative; isolation: isolate; min-height: 100vh;
+  padding: var(--ei-spacing-xl) var(--ei-spacing-l);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  overflow: hidden;
+}
+.ei-hero::before {
+  content: ''; position: absolute; top: calc(-1 * var(--ei-hero-bg-offset, 0px)); left: 0;
+  width: 100%; height: 120%;
+  background-image: image-set(
+    url('../images/hero.avif') type('image/avif'),
+    url('../images/hero.webp') type('image/webp'),
+    url('../images/hero.png') type('image/png')
+  );
+  background-size: cover;
+  background-position: center;
+  transform: translateZ(0); will-change: transform; z-index: -3;
+}
+.ei-hero::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    rgba(176,96,48,0.42) 0%,
+    rgba(176,96,48,0.56) 100%
+  );
+  z-index: -2;
+}
+.ei-hero__content { max-width: 800px; z-index: 1; }
+.ei-hero__title {
+  font-family: 'Cormorant Garamond', serif; font-weight: 600;
+  font-size: clamp(2.5rem, 6vw, 5rem); color: var(--ei-color-secondary);
+  margin-bottom: var(--ei-spacing-s);
+}
+.ei-hero__tagline {
+  font-family: 'Cormorant Garamond', serif; font-weight: 400;
+  font-size: clamp(1rem, 3vw, 2rem); color: var(--ei-color-text);
+  margin-bottom: var(--ei-spacing-s);
+}
+.ei-hero__subtitle { font-size: 0.875rem; color: var(--ei-color-muted); margin-bottom: var(--ei-spacing-m); }
+.ei-hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--ei-spacing-m); }
+
+/* Make the “chips” read like the adjacent buttons */
+.ei-chip.ei-chip--cta {
+  background: var(--ei-color-secondary);
+  color: #000 !important;
+  text-shadow: none;
+  font-weight: 600;
+}
+
+/* Heat shimmer */
+.ei-hero__shimmer {
+  position: absolute; bottom: 20%; left: 50%; width: 300%; height: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at center, rgba(248,184,120,0.4), rgba(248,184,120,0) 70%);
+  animation: ei-shimmer 6s ease-in-out infinite alternate;
+  mix-blend-mode: screen; pointer-events: none; z-index: -1;
+}
+@keyframes ei-shimmer { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .ei-hero__shimmer { animation: none; display: none; } }
+
+/*------------------------------
+  Buttons & Chips
+------------------------------*/
+.ei-button {
+  display: inline-block; padding: 0.75rem 1.5rem; border-radius: var(--ei-radius);
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600; font-size: clamp(1.18rem, 1.10rem + 0.36vw, 1.34rem); cursor: pointer; border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ei-button--primary { background: var(--ei-color-primary); color: #000; }
+.ei-button--secondary { background: var(--ei-color-secondary); color: #000; text-shadow: 0 0 0 rgba(0,0,0,0); }
+
+.ei-button--primary,
+.ei-button--primary:link,
+.ei-button--primary:visited { color: #000 !important; }
+
+.ei-button--secondary,
+.ei-button--secondary:link,
+.ei-button--secondary:visited { color: #000 !important; }
+
+.ei-chip {
+  display: inline-flex; align-items: center; padding: 0.5rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  border-radius: var(--ei-radius);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  color: var(--ei-color-text); font-size: clamp(1.18rem, 1.10rem + 0.36vw, 1.34rem); text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ei-button:hover, .ei-button:focus, .ei-chip:hover, .ei-chip:focus {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.ei-button:focus-visible, .ei-chip:focus-visible {
+  outline: 2px dashed var(--ei-color-secondary); outline-offset: 2px;
+}
+
+/*------------------------------
+  Sections General
+------------------------------*/
+.ei-section__header { text-align: center; margin: var(--ei-spacing-xl) auto var(--ei-spacing-l); }
+.ei-section__title {
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 2rem;
+  color: var(--ei-color-secondary); margin-bottom: var(--ei-spacing-s);
+}
+.ei-section__subtitle { font-size: 0.875rem; color: var(--ei-color-muted); }
+/* Center header-adjacent blurbs and helper lines */
+.ei-section__header > p,
+.ei-menu__note,
+.ei-menu__download,
+.ei-modal__intro {
+  text-align: center;
+}
+
+
+/*------------------------------
+  Menu Section
+------------------------------*/
+.ei-menu { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+
+/* Reset list defaults so nothing nudges right */
+.ei-menu__tabs,
+.ei-menu__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ei-menu__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ei-spacing-s);
+  margin-bottom: var(--ei-spacing-l);
+  margin-left: auto;   /* ensure the row itself is centered if it shrinks */
+  margin-right: auto;
+}
+
+.ei-menu__tab {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--ei-color-secondary);
+  background: none;
+  color: var(--ei-color-secondary);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.ei-menu__tab--active,
+.ei-menu__tab:hover,
+.ei-menu__tab:focus {
+  background: var(--ei-color-secondary);
+  color: #000;
+}
+
+.ei-menu__panels { max-width: 800px; margin: 0 auto; }
+.ei-menu__panel[hidden] { display: none; }
+
+/* Center the grid and each card */
+.ei-menu__list {
+  display: grid;
+  gap: var(--ei-spacing-m);
+  justify-items: center; /* centers individual items regardless of width */
+}
+
+.ei-menu__item {
+  background: var(--ei-card-bg);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  border-radius: var(--ei-radius);
+  padding: var(--ei-spacing-m) var(--ei-spacing-l);
+  /* (Optional) keep cards from stretching too wide:
+     width: 100%;
+     max-width: 720px;
+  */
+}
+
+.ei-menu__item-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--ei-color-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.ei-menu__item-tags {
+  font-size: 0.75rem;
+  color: var(--ei-color-muted);
+  margin-left: var(--ei-spacing-s);
+}
+
+.ei-menu__item-desc {
+  font-size: 0.875rem;
+  color: var(--ei-color-muted);
+  margin: var(--ei-spacing-xs) 0;
+}
+
+.ei-menu__item-price {
+  font-weight: 600;
+  margin-top: var(--ei-spacing-xs);
+  color: var(--ei-color-primary);
+}
+
+.ei-menu__note,
+.ei-menu__download {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ei-color-muted);
+  margin-top: var(--ei-spacing-m);
+}
+
+.ei-menu__download a {
+  color: var(--ei-color-secondary);
+  text-decoration: underline;
+}
+
+/*------------------------------
+  Form Styles (Reservations & Contact)
+------------------------------*/
+.ei-form { display: flex; flex-direction: column; gap: var(--ei-spacing-m); }
+.ei-form__row { display: flex; flex-direction: column; }
+.ei-form__label { font-size: 0.875rem; color: var(--ei-color-text); margin-bottom: var(--ei-spacing-xs); }
+
+.ei-form__control {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--ei-radius);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.07);
+  color: var(--ei-color-text);
+  font-size: 0.875rem;
+}
+/* Contact page: lock the Message box */
+#contact-message {
+  resize: none;
+  height: 8rem;
+  min-height: 8rem;
+  max-height: 8rem;
+  overflow: auto;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+.ei-form__control::placeholder { color: var(--ei-color-muted); }
+
+.ei-form__control:focus {
+  outline: none;
+  border-color: var(--ei-color-secondary);
+  box-shadow: 0 0 0 2px rgba(242,159,92,0.4);
+}
+
+/* High-contrast selects + their option list */
+select.ei-form__control {
+  background: #0f1013;
+  color: var(--ei-color-text);
+  appearance: none;
+}
+
+select.ei-form__control:focus {
+  border-color: var(--ei-color-secondary);
+  box-shadow: 0 0 0 2px rgba(242,159,92,0.4);
+}
+
+select.ei-form__control option {
+  background: #0e0f12;
+  color: var(--ei-color-secondary);
+}
+
+/* Date picker icon color (Chromium/WebKit) */
+input.ei-date::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%)
+          invert(68%) sepia(56%) saturate(615%) hue-rotate(342deg)
+          brightness(103%) contrast(94%);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.ei-form__note {
+  font-size: 0.75rem;
+  color: var(--ei-color-muted);
+  margin-top: -0.5rem;
+}
+
+
+/*------------------------------
+  Reservations Section
+------------------------------*/
+.ei-reservations { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+.ei-reservations__form { max-width: 600px; margin: 0 auto; }
+
+/*------------------------------
+  Locations Section
+------------------------------*/
+.ei-locations { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+.ei-locations__cards {
+  display: grid; gap: var(--ei-spacing-m);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  max-width: 800px; margin: 0 auto;
+}
+.ei-location-card {
+  background: var(--ei-card-bg);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  border-radius: var(--ei-radius);
+  padding: var(--ei-spacing-l);
+}
+.ei-location-card__title {
+  font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 1.5rem;
+  color: var(--ei-color-secondary); margin-bottom: var(--ei-spacing-s);
+  text-align: center;
+}
+.ei-location-card__address, .ei-location-card__hours {
+  font-size: 0.875rem; color: var(--ei-color-muted);
+  margin-bottom: var(--ei-spacing-s); line-height: 1.4;
+}
+.ei-location-card__phone, .ei-location-card__directions {
+  font-size: 0.875rem; color: var(--ei-color-secondary);
+}
+.ei-location-card__directions { text-decoration: underline; }
+
+/*------------------------------
+  About Section
+------------------------------*/
+.ei-about { padding: var(--ei-spacing-xl) var(--ei-spacing-l); scroll-margin-top: 6rem; }
+.ei-about__content {
+  display: flex; flex-direction: column; gap: var(--ei-spacing-l);
+  max-width: 1000px; margin: 0 auto; align-items: center;
+}
+.ei-about__text { flex: 1; }
+.ei-about__text p + p { margin-top: var(--ei-spacing-m); }
+.ei-about__image { flex: 1; }
+.ei-about__image img { width: 100%; border-radius: var(--ei-radius); object-fit: cover; }
+@media (min-width: 768px) {
+  .ei-about__content { flex-direction: row; align-items: flex-start; }
+}
+
+/*------------------------------
+  Gallery Section
+------------------------------*/
+.ei-gallery { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+.ei-gallery__grid {
+  display: grid;
+  gap: var(--ei-spacing-s);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  max-width: 1000px;
+  margin: 0 auto;
+  justify-content: center;
+  justify-items: center;
+}
+.ei-gallery__item img {
+  width: 100%;
+  max-width: 320px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--ei-radius);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.ei-gallery__item img:hover, .ei-gallery__item img:focus { transform: scale(1.03); }
+
+/*------------------------------
+  Events Section
+------------------------------*/
+.ei-events { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+.ei-events__list {
+  display: flex; flex-direction: column; gap: var(--ei-spacing-m);
+  max-width: 800px; margin: 0 auto;
+}
+.ei-event {
+  background: var(--ei-card-bg);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  border-radius: var(--ei-radius);
+  padding: var(--ei-spacing-l);
+}
+.ei-event__title {
+  font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 1.5rem;
+  color: var(--ei-color-secondary); margin-bottom: var(--ei-spacing-xs);
+}
+.ei-event__date { font-size: 0.75rem; color: var(--ei-color-muted); margin-bottom: var(--ei-spacing-s); }
+.ei-event__desc { font-size: 0.875rem; color: var(--ei-color-muted); margin-bottom: var(--ei-spacing-s); }
+.ei-event__rsvp { font-size: 0.875rem; font-weight: 600; color: var(--ei-color-primary); text-decoration: underline; }
+.ei-events__private {
+  background: var(--ei-card-bg);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  border-radius: var(--ei-radius);
+  padding: var(--ei-spacing-l);
+  max-width: 800px; margin: var(--ei-spacing-l) auto 0; text-align: center;
+}
+.ei-events__private-title {
+  font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 1.5rem;
+  color: var(--ei-color-secondary); margin-bottom: var(--ei-spacing-s);
+}
+.ei-events__private-desc { font-size: 0.875rem; color: var(--ei-color-muted); margin-bottom: var(--ei-spacing-m); }
+
+/*------------------------------
+  Contact Section
+------------------------------*/
+.ei-contact { padding: var(--ei-spacing-xl) var(--ei-spacing-l); }
+.ei-contact__grid {
+  display: flex; flex-direction: column; gap: var(--ei-spacing-xl);
+  max-width: 900px; margin: 0 auto;
+}
+.ei-contact__form { flex: 2; }
+.ei-contact__info { flex: 1; font-size: 0.875rem; color: var(--ei-color-text); }
+.ei-contact__item {
+  display: flex; align-items: center; gap: var(--ei-spacing-s);
+  margin-bottom: var(--ei-spacing-s);
+}
+.ei-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.ei-contact__info a { color: var(--ei-color-secondary); }
+@media (min-width: 768px) { .ei-contact__grid { flex-direction: row; } }
+
+/*------------------------------
+  Footer
+------------------------------*/
+.ei-footer {
+  background: var(--ei-card-bg);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  padding: var(--ei-spacing-xl) var(--ei-spacing-l) var(--ei-spacing-l);
+  margin-top: var(--ei-spacing-xl);
+}
+
+.ei-footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ei-spacing-l);
+  max-width: var(--ei-max-width);
+  margin: 0 auto;
+}
+
+.ei-footer__branding { text-align: center; }
+.ei-footer__logo { width: 50px; height: auto; margin: 0 auto; }
+.ei-footer__tagline { font-size: 0.75rem; color: var(--ei-color-muted); margin-top: var(--ei-spacing-xs); }
+
+/* Footer: center the nav list and kill default UL offsets */
+.ei-footer__nav ul,
+.ei-footer__list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ei-spacing-s);
+  justify-content: center;
+  padding: 0;   /* remove default UL padding */
+  margin: 0;    /* remove default UL margin */
+}
+
+.ei-footer__link {
+  font-size: 0.75rem;
+  color: var(--ei-color-secondary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.ei-footer__link:hover,
+.ei-footer__link:focus { text-decoration: underline; }
+
+.ei-footer__social { display: flex; gap: var(--ei-spacing-m); }
+.ei-footer__social-link img { width: 24px; height: 24px; transition: transform 0.2s ease; }
+.ei-footer__social-link:hover img,
+.ei-footer__social-link:focus img { transform: scale(1.1); }
+
+.ei-footer__copyright {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ei-color-muted);
+  margin-top: var(--ei-spacing-m);
+}
+
+/* Mobile: force perfect centering */
+@media (max-width: 640px){
+  .ei-footer__inner{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* center text inside children */
+  }
+
+  .ei-footer__branding,
+  .ei-footer__nav,
+  .ei-footer__social,
+  .ei-footer__copyright{
+    align-self: center;
+    text-align: center;
+    margin: 0;
+  }
+
+  /* reassert UL reset just in case of overrides */
+  .ei-footer__nav ul,
+  .ei-footer__list{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ei-spacing-s);
+    justify-content: center;
+  }
+}
+
+/* Desktop footer: true center with 3-column grid */
+@media (min-width: 768px) {
+  .ei-footer__inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* left / centered nav / right */
+    align-items: center;
+    gap: var(--ei-spacing-xl);
+  }
+
+  .ei-footer__branding { justify-self: start; text-align: left; }
+  .ei-footer__nav { justify-self: center; }
+  .ei-footer__social { justify-self: end; }
+}
+
+
+/*------------------------------
+  Modal Overlay & Lightbox
+------------------------------*/
+.ei-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--ei-spacing-l); z-index: 10000;
+}
+.ei-modal-overlay[hidden] { display: none; }
+
+.ei-modal {
+  background: var(--ei-color-bg); color: var(--ei-color-text);
+  max-width: 640px; width: min(90vw, 640px); max-height: 90vh; overflow-y: auto;
+  border-radius: var(--ei-radius);
+  padding: var(--ei-spacing-xl) var(--ei-spacing-l) var(--ei-spacing-l);
+  position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+}
+/* Ensure modal form fields remain legible on solid charcoal */
+.ei-modal input.ei-form__control,
+.ei-modal textarea.ei-form__control,
+.ei-modal select.ei-form__control {
+  background: #0f1013;
+  color: var(--ei-color-text);
+  border: 1px solid var(--ei-color-secondary);
+}
+
+
+.ei-modal__content { margin-top: var(--ei-spacing-s); }
+.ei-modal__content picture, .ei-modal__content img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.ei-modal img { max-width: 100%; max-height: 80vh; height: auto; object-fit: contain; border-radius: var(--ei-radius); }
+.ei-modal__intro { font-size: 0.875rem; color: var(--ei-color-muted); margin-bottom: var(--ei-spacing-m); }
+
+/* Close button (used for forms/dialogs; hidden during lightbox by JS) */
+.ei-modal__close {
+  position: absolute;
+  top: var(--ei-spacing-s);
+  right: var(--ei-spacing-s);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  color: var(--ei-color-secondary);
+  font-size: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease, border-color .18s ease;
+  z-index: 11000;
+}
+.ei-modal__close::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px 18px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f29f5c'><path d='M18.3 5.71 12 12.01l-6.3-6.3-1.41 1.41L10.59 13.4l-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z'/></svg>");
+}
+.ei-modal__close:hover,
+.ei-modal__close:focus {
+  background: rgba(242,159,92,0.18);
+  border-color: rgba(242,159,92,0.5);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  outline: none;
+  transform: translateY(-1px);
+}
+.ei-modal__close:focus-visible { outline: 2px dashed var(--ei-color-secondary); outline-offset: 2px; }
+
+/\*------------------------------
+  Accessibility: Reduce motion
+------------------------------\*/
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/*------------------------------
+  Contrast fixes for icons & links
+------------------------------*/
+.ei-contact__item .ei-icon,
+.ei-footer__social-link img {
+  filter: brightness(0) saturate(100%)
+          invert(66%) sepia(56%) saturate(527%) hue-rotate(345deg)
+          brightness(99%) contrast(96%);
+}
+@media (prefers-contrast: more) {
+  .ei-button--secondary,
+  .ei-menu__tab--active,
+  .ei-menu__tab:hover,
+  .ei-menu__tab:focus {
+    outline: 2px solid #000; outline-offset: 2px;
+  }
+}
+
+/*--------------------------------
+  Heading rhythm & balancing
+---------------------------------*/
+@supports (text-wrap: balance) {
+  .ei-root h1,
+  .ei-root h2,
+  .ei-root h3 { text-wrap: balance; }
+}
+.ei-root h1,
+.ei-root h2,
+.ei-root h3 { letter-spacing: 0.01em; }
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .parallax,
+  .hero__parallax,
+  .ei-hero { transform: none !important; }
+}
+
+/* Correctly position Ember & Ivy modal close button */
+.ei-modal { position: relative; }
+
+.ei-modal__close {
+  position: absolute;
+  top: 12px;         /* brings it down a bit so it isn't cut off */
+  right: 12px;       /* move to top-right */
+  left: auto;        /* ensure no left positioning can win */
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  color: var(--ei-color-secondary, #f29f5c);
+  line-height: 1;
+  font-size: 18px;   /* lets the × be visible */
+  cursor: pointer;
+  z-index: 11000;    /* above the image/content */
+}
+
+.ei-modal__close:hover,
+.ei-modal__close:focus {
+  background: rgba(242,159,92,0.18);
+  border-color: rgba(242,159,92,0.5);
+  outline: none;
+}
+
+/* Lightbox nav arrows — match close button look */
+.ei-modal__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  color: var(--ei-color-secondary);
+  cursor: pointer;
+  z-index: 11000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.ei-modal__nav:focus-visible { outline: 2px dashed var(--ei-color-secondary); outline-offset: 2px; }
+.ei-modal__nav:hover, .ei-modal__nav:focus {
+  background: rgba(242,159,92,0.18);
+  border-color: rgba(242,159,92,0.5);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+/* SVG arrow icons */
+.ei-modal__nav::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 20px 20px;
+}
+.ei-modal__prev { left: 12px; }
+.ei-modal__next { right: 12px; }
+
+.ei-modal__prev::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%23f29f5c' viewBox='0 0 24 24'><path d='M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z'/></svg>");
+}
+.ei-modal__next::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%23f29f5c' viewBox='0 0 24 24'><path d='M8.59 16.59 10 18l6-6-6-6-1.41 1.41L13.17 12z'/></svg>");
+}
+
+/* Only show arrows in true lightbox mode; JS toggles [hidden] */
+.ei-modal:not(.ei-modal--lightbox) .ei-modal__nav { display: none; }
+
+/*
+ * -----------------------------------------------------------------------
+ * Custom lightbox controls
+ *
+ * When a gallery image is opened, main.js injects buttons with classes
+ * `.ei-lightbox-close`, `.ei-lightbox-prev` and `.ei-lightbox-next` into
+ * the modal content.  These buttons are styled here to match the
+ * appearance of the original `.ei-modal__close` and `.ei-modal__nav`
+ * buttons (glassmorphic round buttons with warm accent colours).  This
+ * ensures the controls are positioned correctly and follow the same
+ * hover/focus interactions as the rest of the UI.  The controls do not
+ * rely on the `.ei-modal--lightbox` class; they are always visible when
+ * injected.
+ */
+/* Base style shared by all lightbox control buttons */
+/* Base lightbox controls: size, colours and interactions.  Positioning
+   is defined separately depending on context (wrapper vs. viewport). */
+.ei-lightbox-prev,
+.ei-lightbox-next,
+.ei-lightbox-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(calc(var(--ei-blur) / 2));
+  color: var(--ei-color-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+  transition: transform .18s ease, background-color .18s ease,
+              box-shadow .18s ease, border-color .18s ease;
+}
+/* Hover/focus states for lightbox controls */
+.ei-lightbox-prev:hover,
+.ei-lightbox-prev:focus,
+.ei-lightbox-next:hover,
+.ei-lightbox-next:focus,
+.ei-lightbox-close:hover,
+.ei-lightbox-close:focus {
+  background: rgba(242,159,92,0.18);
+  border-color: rgba(242,159,92,0.5);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  transform: translateY(-2px);
+}
+/* Ensure SVG icons scale appropriately within buttons */
+.ei-lightbox-prev svg,
+.ei-lightbox-next svg,
+.ei-lightbox-close svg {
+  width: 20px;
+  height: 20px;
+}
+/* Responsive adjustments for small screens */
+@media (max-width: 640px) {
+  /* On smaller screens the lightbox controls float against the viewport
+     edges rather than relative to the image wrapper.  We also reduce
+     their size slightly. */
+  .ei-lightbox-prev,
+  .ei-lightbox-next,
+  .ei-lightbox-close {
+    width: 40px;
+    height: 40px;
+  }
+  .ei-lightbox-prev {
+    position: fixed;
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
+  }
+  .ei-lightbox-next {
+    position: fixed;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+  }
+  .ei-lightbox-close {
+    position: fixed;
+    top: var(--ei-spacing-s);
+    right: var(--ei-spacing-s);
+    left: auto;
+  }
+}
+
+/*
+ * Large-screen positioning for lightbox controls.  On desktop and larger
+ * breakpoints, the previous/next arrows float near the centre of the
+ * viewport instead of hugging the extreme edges.  The close button
+ * returns to the top-right corner.
+ */
+@media (min-width: 641px) {
+  .ei-lightbox-prev,
+  .ei-lightbox-next {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .ei-lightbox-prev {
+    left: 4vw;
+  }
+  .ei-lightbox-next {
+    right: 4vw;
+  }
+  .ei-lightbox-close {
+    position: fixed;
+    top: var(--ei-spacing-s);
+    right: var(--ei-spacing-s);
+    left: auto;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .ei-modal__nav {
+    width: 40px; height: 40px;
+  }
+  .ei-modal__prev { left: 6px; }
+  .ei-modal__next { right: 6px; }
+}
+
+/*
+ * -----------------------------------------------------------------------
+ * Mobile-first enhancements inspired by the ADK Digital site
+ * -----------------------------------------------------------------------
+ * These rules tweak navigation, hero actions, gallery thumbnails, menu alignment,
+ * section header centering and modal form styles for a better mobile experience
+ * while preserving the existing dark, warm aesthetic.  Navigation links remain
+ * visible on all screen sizes and center neatly, the hero call-to-action buttons
+ * break into two equal rows on narrow screens, gallery thumbnails crop to
+ * consistent squares, and form controls within modals adopt clear contrasts.
+ */
+
+/* Navigation: always visible and centered on all screens */
+.ei-nav__list {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+@media (max-width: 767px) {
+  /* Remove slide-out drawer on small screens */
+  .ei-header__inner {
+    justify-content: center;
+  }
+  .ei-nav__toggle {
+    display: none;
+  }
+  .ei-nav__list {
+    position: static;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    background: transparent;
+    backdrop-filter: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--ei-spacing-m);
+    padding: 0;
+    transform: none !important;
+  }
+  .ei-nav__item + .ei-nav__item {
+    margin-top: 0;
+  }
+}
+
+/* Hero actions: break into two equal rows on small screens */
+@media (max-width: 767px) {
+  .ei-hero__actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--ei-spacing-m);
+    justify-content: center;
+  }
+}
+@media (min-width: 768px) {
+  .ei-hero__actions {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: var(--ei-spacing-m);
+  }
+}
+.ei-hero__actions .ei-button,
+.ei-hero__actions .ei-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Gallery: consistent square thumbnails */
+.ei-gallery__item {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+.ei-gallery__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Menu: center list items under their tabs */
+.ei-menu__list {
+  justify-items: center;
+}
+
+/* Section headers: ensure subtitle and helper lines are centered */
+.ei-section__header > * {
+  text-align: center;
+}
+
+/* Menu notes and download link centered */
+.ei-menu__note,
+.ei-menu__download {
+  text-align: center;
+}
+
+/* Modal forms: ensure high-contrast inputs and labels */
+.ei-modal .ei-form__label {
+  color: var(--ei-color-secondary);
+  font-family: 'Cormorant Garamond', serif;
+}
+.ei-modal .ei-form__control {
+  background: #0f1013;
+  color: var(--ei-color-text);
+  border: 1px solid var(--ei-color-secondary);
+}
+.ei-modal .ei-form__control::placeholder {
+  color: var(--ei-color-muted);
+}
+.ei-modal .ei-button {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+/* Brand item (logo) in the nav list */
+.ei-nav__item--brand {
+  display: flex;
+  align-items: center;
+}
+
+/* No padding/underline for the logo link */
+.ei-nav__link--brand {
+  padding: 0;
+  line-height: 0;           /* avoids extra vertical space */
+  position: relative;
+}
+.ei-nav__link--brand::after { display: none; }  /* disable underline pseudo-element */
+
+/* Logo image sizing */
+.ei-nav__link--brand img {
+  width: 40px;
+  height: auto;
+  display: block;
+}
+
+/* Optional: smaller on very small screens */
+@media (max-width: 480px) {
+  .ei-nav__link--brand img { width: 34px; }
+}
+
+
+
+/* === NAV DESKTOP HOTFIX (ensures full nav shows on ≥768px) ===================
+   In case any earlier rules re-hide items after our media block, force desktop
+   to display all items and hide the hamburger. This matches ADK Digital.
+============================================================================= */
+@media (min-width: 768px) {
+  .ei-root .header__nav .nav__item { display: block !important; }
+  .ei-root .header__toggle { display: none !important; }
+  .ei-root .nav__list { display: flex !important; }
+}
+
+
+/* === Ember & Ivy: Nav link font and colors (desktop + mobile) ======================= */
+.ei-root .nav__link{
+  font-family: 'Cormorant Garamond', serif;
+  letter-spacing: 0.02em; 
+  color: var(--ei-color-primary);
+}
+.ei-root .nav__link:hover,
+.ei-root .nav__link:focus-visible{
+  color: var(--ei-color-secondary);
+  background: rgba(255,255,255,.06);
+}
+
+
+/* === Ember & Ivy: Hamburger toggle theming ================================ */
+.ei-root .header__toggle{
+  color: var(--ei-color-primary);
+}
+.ei-root .header__toggle:hover,
+.ei-root .header__toggle:focus-visible{
+  color: var(--ei-color-secondary);
+  outline: none;
+}
+
+/* -----------------------------------------------------------------------
+ * Lightbox positioning overrides
+ *
+ * Injected lightbox controls (.ei-lightbox-close, .ei-lightbox-prev and
+ * .ei-lightbox-next) are children of a wrapper (.ei-lightbox-wrapper).
+ * These rules position the controls relative to the image wrapper rather
+ * than the viewport.  On desktop, arrows sit just outside the left and
+ * right edges of the photo; on smaller screens they hug the photo edges.
+ * The close button anchors to the top-right corner of the wrapper.
+ */
+.ei-lightbox-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.ei-lightbox-wrapper .ei-lightbox-close,
+.ei-lightbox-wrapper .ei-lightbox-prev,
+.ei-lightbox-wrapper .ei-lightbox-next {
+  position: absolute;
+  z-index: 11000;
+}
+
+.ei-lightbox-wrapper .ei-lightbox-close {
+  top: var(--ei-spacing-s);
+  right: var(--ei-spacing-s);
+  left: auto;
+}
+
+.ei-lightbox-wrapper .ei-lightbox-prev,
+.ei-lightbox-wrapper .ei-lightbox-next {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@media (min-width: 641px) {
+  .ei-lightbox-wrapper .ei-lightbox-prev { left: -60px; }
+  .ei-lightbox-wrapper .ei-lightbox-next { right: -60px; }
+}
+
+@media (max-width: 640px) {
+  .ei-lightbox-wrapper .ei-lightbox-prev { left: var(--ei-spacing-xs); }
+  .ei-lightbox-wrapper .ei-lightbox-next { right: var(--ei-spacing-xs); }
+}
+
+/* Always position the dynamically injected close button in the
+   top-right corner of the viewport.  Some earlier rules might
+   inadvertently align it to the left; overriding here ensures
+   consistency across breakpoints. */
+.ei-lightbox-close {
+  position: fixed;
+  top: var(--ei-spacing-s);
+  right: var(--ei-spacing-s);
+  left: auto;
+}
+
+/* ===============================================
+   ADK Digital button alignment and padding
+   =============================================== */
+/* Position the persistent ADK Digital shortcut.  Use `top` rather
+   than padding to create vertical space, and add `!important` to
+   override any inline styles or earlier rules. */
+.demo-back {
+  position: fixed;
+  top: 4.5rem !important; /* push the bubble down from the top */
+  left: 1rem !important;
+  z-index: 12000;
+}

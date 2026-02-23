@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Primary meta tags -->
+  <title>Ember &amp; Ivy | Fire-lit evenings, crafted cocktails, seasonal plates</title>
+  <meta
+    name="description"
+    content="Experience upscale, cozy nights with craft cocktails, seasonal plates and an elegant patio at Ember &amp; Ivy. Reserve a table, explore our menu and discover upcoming events."
+  />
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Ember &amp; Ivy | Fire-lit evenings, crafted cocktails, seasonal plates" />
+  <meta
+    property="og:description"
+    content="Experience upscale, cozy nights with craft cocktails, seasonal plates and an elegant patio at Ember &amp; Ivy. Reserve a table, explore our menu and discover upcoming events."
+  />
+  <meta property="og:image" content="./images/hero.webp" />
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ember &amp; Ivy | Fire-lit evenings, crafted cocktails, seasonal plates" />
+  <meta
+    name="twitter:description"
+    content="Experience upscale, cozy nights with craft cocktails, seasonal plates and an elegant patio at Ember &amp; Ivy. Reserve a table, explore our menu and discover upcoming events."
+  />
+  <meta name="twitter:image" content="./images/hero.webp" />
+
+  <!-- Canonical & theme colour -->
+  <link rel="canonical" href="https://example.com/ember-ivy/" />
+  <meta name="theme-color" content="#B06030" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+
+
+  <!-- Structured data: Restaurant schema with placeholders -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Ember & Ivy",
+    "url": "https://example.com/ember-ivy/",
+    "telephone": "+1-000-000-0000",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "123 Placeholder St",
+      "addressLocality": "City",
+      "addressRegion": "NY",
+      "postalCode": "00000",
+      "addressCountry": "US"
+    },
+    "servesCuisine": ["Seasonal", "New American", "Cocktails"],
+    "image": "https://example.com/ember-ivy/images/hero.jpg",
+    "sameAs": [
+      "https://www.instagram.com/example",
+      "https://www.facebook.com/example"
+    ]
+  }
+  </script>
+
+  <!-- Preconnect for fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Google Fonts: Cormorant Garamond & Inter -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Preload hero images to improve LCP -->
+  <link rel="preload" as="image" fetchpriority="high" href="./images/hero.avif" />
+  <link rel="preload" as="image" href="./images/hero.webp" type="image/webp" />
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="./assets/logo.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
+  <link rel="apple-touch-icon" href="./assets/favicon-48.png" />
+  <!-- Styles -->
+  <link rel="stylesheet" href="./css/styles.css" />
+
+  <!-- Floating back-to-portfolio button (fixed size & above all content) -->
+  <style>
+    .demo-back {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 9999;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(17,17,17,0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 2px solid rgba(255,255,255,0.4);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      text-decoration: none;
+    }
+    .demo-back:hover { background: rgba(17,17,17,0.85); transform: scale(1.05); }
+    .demo-back img { width: 48px; height: 48px; display: block; }
+    @media (max-width: 640px) {
+      .demo-back { width: 56px; height: 56px; top: 12px; left: 12px; }
+      .demo-back img { width: 32px; height: 32px; }
+    }
+
+    /* FIX: ensure anything with [hidden] is REALLY hidden (prevents UA/CSS conflicts) */
+    [hidden] { display: none !important; }
+  </style>
+
+  
+
+
+  
+
+
+  <style>
+    /* Consistent nav underline: only active section shows underline */
+    .ei-nav__link {
+      text-decoration: none !important;
+    }
+    .ei-nav__link:hover,
+    .ei-nav__link:focus {
+      text-decoration: none !important;
+    }
+    .ei-nav__link[aria-current="page"] {
+      text-decoration: underline !important;
+      text-underline-offset: 4px;
+      text-decoration-thickness: 2px;
+    }
+    /* Visible keyboard focus ring without underline duplication */
+    .ei-nav__link:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  </style>
+
+
+  <style>
+    /* Unify nav underline behavior across all states */
+    header .ei-nav__list .ei-nav__link,
+    header .ei-nav__list .ei-nav__link:link,
+    header .ei-nav__list .ei-nav__link:visited,
+    header .ei-nav__list .ei-nav__link:hover,
+    header .ei-nav__list .ei-nav__link:active,
+    header .ei-nav__list .ei-nav__link:focus,
+    header .ei-nav__list .ei-nav__link:focus:hover,
+    header .ei-nav__list .ei-nav__link:focus:active {
+      text-decoration: none !important;
+      border-bottom: 0 !important;
+      box-shadow: none !important;
+      background-image: none !important;
+    }
+
+    /* Only the current section is underlined */
+    header .ei-nav__list .ei-nav__link[aria-current="page"] {
+      text-decoration: underline !important;
+      text-underline-offset: 4px !important;
+      text-decoration-thickness: 2px !important;
+    }
+
+    /* Keep keyboard focus visible and consistent, without adding an underline */
+    header .ei-nav__list .ei-nav__link:focus-visible {
+      outline: 2px solid currentColor !important;
+      outline-offset: 2px !important;
+    }
+  </style>
+
+</head>
+
+
+  <body>
+    <div class="ei-root">
+      <!-- Header & Navigation -->
+		<!-- Header & Navigation (ADK-style mechanism) -->
+		<header class="header" id="top">
+		  <div class="container header__container">
+			<nav class="header__nav" aria-label="Primary">
+			  <ul class="nav__list">
+				<!-- Brand (always visible) -->
+				<li class="nav__item nav__item--brand">
+				  <a href="#home" class="nav__link nav__link--brand" aria-label="Home">
+					<img src="./assets/logo.svg" alt="Ember & Ivy logo" class="nav__logo" />
+				  </a>
+				</li>
+
+				<!-- Full list appears on desktop; collapses into panel on mobile -->
+				<li class="nav__item"><a href="#home" class="nav__link">Home</a></li>
+				<li class="nav__item"><a href="#about" class="nav__link">About</a></li>
+				<li class="nav__item"><a href="#menu" class="nav__link">Menu</a></li>
+				<li class="nav__item"><a href="#reservations" class="nav__link">Reservations</a></li>
+				<li class="nav__item"><a href="#locations" class="nav__link">Locations</a></li>
+				<li class="nav__item"><a href="#gallery" class="nav__link">Gallery</a></li>
+				<li class="nav__item"><a href="#events" class="nav__link">Events</a></li>
+				<li class="nav__item"><a href="#contact" class="nav__link">Contact</a></li>
+			  </ul>
+			</nav>
+
+			<!-- Mobile toggle (hidden on desktop by CSS) -->
+			<button class="header__toggle" aria-label="Toggle menu">
+			  <i class="fas fa-bars" aria-hidden="true"></i>
+			  <span class="sr-only">Menu</span>
+			</button>
+		  </div>
+		</header>
+
+
+      <main class="ei-main">
+        <!-- Hero Section -->
+        <section id="home" class="ei-hero" aria-label="Hero">
+          <div class="ei-hero__content">
+            <h1 class="ei-hero__title">Ember &amp; Ivy</h1>
+            <p class="ei-hero__tagline">Fire-lit evenings, crafted cocktails &amp; seasonal plates</p>
+            <p class="ei-hero__subtitle">An upscale escape for date nights, small groups &amp; discerning foodies</p>
+            <div class="ei-hero__actions">
+              <button class="ei-button ei-button--primary" data-action="open-reserve">Reserve a Table</button>
+              <a href="#menu" class="ei-button ei-button--secondary">View Menu</a>
+              <a href="#locations" class="ei-chip ei-chip--cta">Find a Location</a>
+              <a href="#contact" class="ei-chip ei-chip--cta">Call Us</a>
+            </div>
+            <!-- Decorative heat shimmer overlay -->
+            <div class="ei-hero__shimmer" aria-hidden="true"></div>
+          </div>
+        </section>
+		
+        <!-- About Section -->
+        <section id="about" class="ei-about" aria-label="About">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">About Ember &amp; Ivy</h2>
+            <p class="ei-section__subtitle">An intimate story of fire and flavor</p>
+          </div>
+          <div class="ei-about__content">
+            <div class="ei-about__text">
+              <p>Born from a love of communal fire and the flavors it inspires, Ember &amp; Ivy blends rustic techniques with modern finesse. Our chefs coax smoke and embers into every dish and drink, crafting a menu that’s as seasonal as it is soulful. From wood-fired mains to charred citrus cocktails, every plate tells a story of warmth and craft.</p>
+              <p>We source locally and sustainably, partnering with regional farms and artisans to celebrate the bounty of the Northeast. Whether you’re joining us for an intimate date or a lively gathering, expect cozy corners, attentive hospitality and a space designed to linger long after the last spark fades.</p>
+            </div>
+            <div class="ei-about__image">
+              <picture>
+                <source srcset="./images/gallery3.webp" type="image/webp" />
+                <img src="./images/gallery3.png" alt="Candlelit dining room" loading="lazy" width="1536" height="1024" />
+              </picture>
+            </div>
+          </div>
+        </section>
+
+        <!-- Menu Section -->
+        <section id="menu" class="ei-menu" aria-label="Menu">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Our Menu</h2>
+            <p class="ei-section__subtitle">Explore cocktails, small plates, mains &amp; desserts</p>
+          </div>
+          <!-- Tab controls -->
+          <div class="ei-menu__tabs" role="tablist">
+            <button class="ei-menu__tab ei-menu__tab--active" role="tab" data-category="cocktails" aria-selected="true">Cocktails</button>
+            <button class="ei-menu__tab" role="tab" data-category="small-plates" aria-selected="false">Small Plates</button>
+            <button class="ei-menu__tab" role="tab" data-category="mains" aria-selected="false">Mains</button>
+            <button class="ei-menu__tab" role="tab" data-category="desserts" aria-selected="false">Desserts</button>
+            <button class="ei-menu__tab" role="tab" data-category="happy-hour" aria-selected="false">Happy Hour</button>
+          </div>
+          <!-- Menu content panels -->
+          <div class="ei-menu__panels">
+            <!-- Cocktails -->
+            <div class="ei-menu__panel" data-category="cocktails">
+              <ul class="ei-menu__list" role="list">
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Smoked Rosemary Sour <span class="ei-menu__item-tags">VG</span></div>
+                  <p class="ei-menu__item-desc">Bourbon, charred rosemary, citrus, frothy aquafaba</p>
+                  <div class="ei-menu__item-price">$14</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Ember Negroni <span class="ei-menu__item-tags">GF</span></div>
+                  <p class="ei-menu__item-desc">Smoked gin, house bitters, vermouth, burnt orange peel</p>
+                  <div class="ei-menu__item-price">$13</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Ivy Fizz <span class="ei-menu__item-tags">V</span></div>
+                  <p class="ei-menu__item-desc">Elderflower liqueur, cucumber, lime, sparkling wine</p>
+                  <div class="ei-menu__item-price">$12</div>
+                </li>
+              </ul>
+            </div>
+            <!-- Small Plates -->
+            <div class="ei-menu__panel" data-category="small-plates" hidden>
+              <ul class="ei-menu__list" role="list">
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Charred Octopus <span class="ei-menu__item-tags">GF</span></div>
+                  <p class="ei-menu__item-desc">Harissa glaze, smoked potato purée, pickled fennel</p>
+                  <div class="ei-menu__item-price">$16</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Truffled Mushroom Tartine <span class="ei-menu__item-tags">VG</span></div>
+                  <p class="ei-menu__item-desc">Grilled sourdough, wild mushrooms, cashew béchamel</p>
+                  <div class="ei-menu__item-price">$14</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Crispy Cauliflower Bites <span class="ei-menu__item-tags">V, GF</span></div>
+                  <p class="ei-menu__item-desc">Smoked paprika aioli, pickled shallots, lime zest</p>
+                  <div class="ei-menu__item-price">$11</div>
+                </li>
+              </ul>
+            </div>
+            <!-- Mains -->
+            <div class="ei-menu__panel" data-category="mains" hidden>
+              <ul class="ei-menu__list" role="list">
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Charcoal-Grilled Ribeye <span class="ei-menu__item-tags">GF</span></div>
+                  <p class="ei-menu__item-desc">Bone-in ribeye, ember-roasted garlic butter, arugula salad</p>
+                  <div class="ei-menu__item-price">$38</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Pan-Seared Sea Bass</div>
+                  <p class="ei-menu__item-desc">Burnt citrus beurre blanc, charred broccolini, leek ash</p>
+                  <div class="ei-menu__item-price">$32</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Wild Mushroom Risotto <span class="ei-menu__item-tags">V, GF</span></div>
+                  <p class="ei-menu__item-desc">Aged parmesan, black truffle, charred leek oil</p>
+                  <div class="ei-menu__item-price">$28</div>
+                </li>
+              </ul>
+            </div>
+            <!-- Desserts -->
+            <div class="ei-menu__panel" data-category="desserts" hidden>
+              <ul class="ei-menu__list" role="list">
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Smoked Chocolate Mousse <span class="ei-menu__item-tags">GF</span></div>
+                  <p class="ei-menu__item-desc">Sea salt caramel, ember-roasted hazelnuts</p>
+                  <div class="ei-menu__item-price">$10</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Brûléed Citrus Tart <span class="ei-menu__item-tags">V</span></div>
+                  <p class="ei-menu__item-desc">Smoked meringue, charred lemon zest</p>
+                  <div class="ei-menu__item-price">$9</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Fireplace S’mores for Two <span class="ei-menu__item-tags">V</span></div>
+                  <p class="ei-menu__item-desc">House-made graham, toasted marshmallow, dark chocolate</p>
+                  <div class="ei-menu__item-price">$15</div>
+                </li>
+              </ul>
+            </div>
+            <!-- Happy Hour -->
+            <div class="ei-menu__panel" data-category="happy-hour" hidden>
+              <ul class="ei-menu__list" role="list">
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Sunset Spritz <span class="ei-menu__item-tags">V</span></div>
+                  <p class="ei-menu__item-desc">Aperitivo, sparkling wine, ember-infused bitters</p>
+                  <div class="ei-menu__item-price">$8</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Ember Old Fashioned</div>
+                  <p class="ei-menu__item-desc">Smoked bourbon, charred sugar cube, orange peel</p>
+                  <div class="ei-menu__item-price">$8</div>
+                </li>
+                <li class="ei-menu__item">
+                  <div class="ei-menu__item-name">Ivy Gin &amp; Tonic <span class="ei-menu__item-tags">GF</span></div>
+                  <p class="ei-menu__item-desc">House gin, charred herbs, tonic water, lime</p>
+                  <div class="ei-menu__item-price">$7</div>
+                </li>
+              </ul>
+              <p class="ei-menu__note">Happy Hour daily 4–6 PM in the lounge</p>
+            </div>
+          </div>
+          <p class="ei-menu__download"><a href="#" aria-label="Download our full PDF menu">Download PDF Menu</a></p>
+        </section>
+
+        <!-- Reservations Section -->
+        <section id="reservations" class="ei-reservations" aria-label="Reservations">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Reservations</h2>
+            <p class="ei-section__subtitle">Book your fire-lit table</p>
+          </div>
+          <form
+            class="ei-form ei-reservations__form"
+            method="POST"
+            action="https://formspree.io/f/YOUR_FORMSPREE_ID"
+          >
+            <div class="ei-form__row">
+              <label for="party-size" class="ei-form__label">Party Size</label>
+              <select id="party-size" name="party-size" class="ei-form__control" required>
+                <option value="" disabled selected>Select</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8+</option>
+              </select>
+            </div>
+
+            <div class="ei-form__row">
+              <label for="reservation-date" class="ei-form__label">Date</label>
+              <input type="date" id="reservation-date" name="date" class="ei-form__control ei-date" required />
+            </div>
+
+            <div class="ei-form__row">
+              <label for="reservation-time" class="ei-form__label">Time</label>
+              <select id="reservation-time" name="time" class="ei-form__control" required>
+                <option value="" disabled selected>Select</option>
+                <option>4:00 PM</option>
+                <option>4:15 PM</option>
+                <option>4:30 PM</option>
+                <option>4:45 PM</option>
+                <option>5:00 PM</option>
+                <option>5:15 PM</option>
+                <option>5:30 PM</option>
+                <option>5:45 PM</option>
+                <option>6:00 PM</option>
+                <option>6:15 PM</option>
+                <option>6:30 PM</option>
+                <option>6:45 PM</option>
+                <option>7:00 PM</option>
+                <option>7:15 PM</option>
+                <option>7:30 PM</option>
+                <option>7:45 PM</option>
+                <option>8:00 PM</option>
+                <option>8:15 PM</option>
+                <option>8:30 PM</option>
+                <option>8:45 PM</option>
+                <option>9:00 PM</option>
+                <option>9:15 PM</option>
+                <option>9:30 PM</option>
+                <option>9:45 PM</option>
+                <option>10:00 PM</option>
+                <option>10:15 PM</option>
+                <option>10:30 PM</option>
+                <option>10:45 PM</option>
+                <option>11:00 PM</option>
+              </select>
+            </div>
+
+            <div class="ei-form__row">
+              <label for="reservation-name" class="ei-form__label">Name</label>
+              <input type="text" id="reservation-name" name="name" class="ei-form__control" required />
+            </div>
+
+            <div class="ei-form__row">
+              <label for="reservation-phone" class="ei-form__label">Phone</label>
+              <input
+                type="tel"
+                id="reservation-phone"
+                name="phone"
+                class="ei-form__control"
+                placeholder="(###) ###-####"
+                inputmode="numeric"
+                pattern="^\(\d{3}\)\s\d{3}-\d{4}$"
+                title="Enter as (###) ###-####"
+                maxlength="14"
+                required
+              />
+            </div>
+
+            <div class="ei-form__row">
+              <label for="reservation-email" class="ei-form__label">Email</label>
+              <input type="email" id="reservation-email" name="email" class="ei-form__control" required />
+            </div>
+            <div class="ei-form__row">
+              <label for="reservation-notes" class="ei-form__label">Special Requests</label>
+              <textarea id="reservation-notes" name="notes" class="ei-form__control" rows="3" placeholder="Dietary restrictions, celebrations, etc."></textarea>
+            </div>
+            <p class="ei-form__note">For parties of 8+ please call us directly.</p>
+            <button type="submit" class="ei-button ei-button--primary">Request Reservation</button>
+          </form>
+        </section>
+
+        <!-- Locations Section -->
+        <section id="locations" class="ei-locations" aria-label="Locations">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Our Locations</h2>
+            <p class="ei-section__subtitle">Find Ember &amp; Ivy near you</p>
+          </div>
+          <div class="ei-locations__cards">
+            <!-- Location 1 -->
+            <div class="ei-location-card">
+              <h3 class="ei-location-card__title">Saratoga Springs</h3>
+              <p class="ei-location-card__address">17 Caroline St<br />Saratoga Springs, NY 12866</p>
+              <p class="ei-location-card__hours">
+                Mon–Thu: 4 PM – 10 PM<br />
+                Fri–Sat: 4 PM – 12 AM<br />
+                Sun: 2 PM – 9 PM
+              </p>
+              <p class="ei-location-card__contact">
+                <a href="tel:+15185551234" class="ei-location-card__phone">(518) 555-1234</a><br />
+                <a href="#" class="ei-location-card__directions">Get directions</a>
+              </p>
+            </div>
+            <!-- Location 2 -->
+            <div class="ei-location-card">
+              <h3 class="ei-location-card__title">Schenectady</h3>
+              <p class="ei-location-card__address">432 State St<br />Schenectady, NY 12305</p>
+              <p class="ei-location-card__hours">
+                Mon–Thu: 5 PM – 11 PM<br />
+                Fri–Sat: 5 PM – 1 AM<br />
+                Sun: 3 PM – 9 PM
+              </p>
+              <p class="ei-location-card__contact">
+                <a href="tel:+15185556789" class="ei-location-card__phone">(518) 555-6789</a><br />
+                <a href="#" class="ei-location-card__directions">Get directions</a>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery" class="ei-gallery" aria-label="Gallery">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Gallery</h2>
+            <p class="ei-section__subtitle">A glimpse inside our world</p>
+          </div>
+          <div class="ei-gallery__grid">
+            <figure class="ei-gallery__item">
+              <picture>
+                <source srcset="./images/gallery1.webp" type="image/webp" />
+                <img src="./images/gallery1.png" alt="Signature cocktail with citrus garnish" loading="lazy" width="1024" height="1536" />
+              </picture>
+            </figure>
+            <figure class="ei-gallery__item">
+              <picture>
+                <source srcset="./images/gallery2.webp" type="image/webp" />
+                <img src="./images/gallery2.png" alt="Gourmet dish with edible flowers" loading="lazy" width="1024" height="1536" />
+              </picture>
+            </figure>
+            <figure class="ei-gallery__item">
+              <picture>
+                <source srcset="./images/gallery3.webp" type="image/webp" />
+                <img src="./images/gallery3.png" alt="Candlelit dining room" loading="lazy" width="1536" height="1024" />
+              </picture>
+            </figure>
+          </div>
+        </section>
+
+        <!-- Events Section -->
+        <section id="events" class="ei-events" aria-label="Events &amp; Private Dining">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Events &amp; Private Dining</h2>
+            <p class="ei-section__subtitle">Join us for special evenings</p>
+          </div>
+          <div class="ei-events__list">
+            <article class="ei-event">
+              <h3 class="ei-event__title">Wine &amp; Fire: Sommelier Series</h3>
+              <p class="ei-event__date">September 20, 2025</p>
+              <p class="ei-event__desc">An evening pairing ember-kissed dishes with bold natural wines. Limited seating.</p>
+              <!-- Link RSVP directly to the contact section -->
+              <a href="#contact" class="ei-event__rsvp">RSVP</a>
+            </article>
+            <article class="ei-event">
+              <h3 class="ei-event__title">Harvest Feast</h3>
+              <p class="ei-event__date">October 15, 2025</p>
+              <p class="ei-event__desc">Celebrate the season with a five-course tasting menu featuring locally foraged ingredients.</p>
+              <!-- Link RSVP directly to the contact section -->
+              <a href="#contact" class="ei-event__rsvp">RSVP</a>
+            </article>
+          </div>
+          <div class="ei-events__private">
+            <h3 class="ei-events__private-title">Private Dining</h3>
+            <p class="ei-events__private-desc">Looking for an intimate space for your next celebration? Our hidden dining room seats up to 12 guests.</p>
+            <!-- Use an anchor so that clicking "Inquire Now" scrolls to the contact section -->
+            <a href="#contact" class="ei-button ei-button--secondary">Inquire Now</a>
+          </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="ei-contact" aria-label="Contact">
+          <div class="ei-section__header">
+            <h2 class="ei-section__title">Get in Touch</h2>
+            <p class="ei-section__subtitle">We’d love to hear from you</p>
+          </div>
+          <div class="ei-contact__grid">
+            <form
+              class="ei-form ei-contact__form"
+              method="POST"
+              action="https://formspree.io/f/YOUR_FORMSPREE_ID"
+            >
+              <div class="ei-form__row">
+                <label for="contact-name" class="ei-form__label">Name</label>
+                <input type="text" id="contact-name" name="name" class="ei-form__control" required />
+              </div>
+              <div class="ei-form__row">
+                <label for="contact-email" class="ei-form__label">Email</label>
+                <input type="email" id="contact-email" name="email" class="ei-form__control" required />
+              </div>
+              <div class="ei-form__row">
+                <label for="contact-message" class="ei-form__label">Message</label>
+                <textarea id="contact-message" name="message" class="ei-form__control" rows="4" required></textarea>
+              </div>
+              <button type="submit" class="ei-button ei-button--primary">Send Message</button>
+            </form>
+            <div class="ei-contact__info">
+              <p class="ei-contact__item"><img src="./assets/location.svg" alt="Location icon" class="ei-icon" /> 17 Caroline St, Saratoga Springs, NY 12866</p>
+              <p class="ei-contact__item"><img src="./assets/phone.svg" alt="Phone icon" class="ei-icon" /> <a href="tel:+15185551234">(518) 555-1234</a></p>
+              <p class="ei-contact__item"><img src="./assets/envelope.svg" alt="Email icon" class="ei-icon" /> <a href="mailto:info@emberivy.com">info@emberivy.com</a></p>
+              <p class="ei-contact__item">Mon–Thu: 4 PM – 10 PM<br />Fri–Sat: 4 PM – 12 AM<br />Sun: 2 PM – 9 PM</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="ei-footer" role="contentinfo">
+        <div class="ei-footer__inner">
+          <div class="ei-footer__branding">
+            <img src="./assets/logo.svg" alt="Ember &amp; Ivy logo" class="ei-footer__logo" />
+            <p class="ei-footer__tagline">Fire-lit evenings, crafted cocktails &amp; seasonal plates</p>
+          </div>
+          <div class="ei-footer__nav">
+            <ul class="ei-footer__list" role="list">
+              <li><a href="#menu" class="ei-footer__link">Menu</a></li>
+              <li><a href="#reservations" class="ei-footer__link">Reservations</a></li>
+              <li><a href="#locations" class="ei-footer__link">Locations</a></li>
+              <li><a href="#events" class="ei-footer__link">Events</a></li>
+              <li><a href="#contact" class="ei-footer__link">Contact</a></li>
+            </ul>
+          </div>
+          <div class="ei-footer__social">
+            <a href="#" class="ei-footer__social-link" aria-label="Instagram"><img src="./assets/instagram.svg" alt="Instagram" class="ei-icon" /></a>
+            <a href="#" class="ei-footer__social-link" aria-label="Facebook"><img src="./assets/facebook.svg" alt="Facebook" class="ei-icon" /></a>
+            <a href="#" class="ei-footer__social-link" aria-label="Twitter"><img src="./assets/twitter.svg" alt="Twitter" class="ei-icon" /></a>
+          </div>
+        </div>
+        <div class="ei-footer__copyright">
+          <p>&copy; <span id="ei-year"></span> Ember &amp; Ivy. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Modal Overlay for reservations and private dining & RSVP -->
+    <div id="ei-modal-overlay" class="ei-modal-overlay" hidden>
+      <!--
+        The modal container no longer includes static navigation/close controls.  All
+        controls (close button and prev/next arrows) for the lightbox are injected
+        dynamically by main.js when opening a gallery image.  This prevents
+        duplicate buttons from appearing and allows the CSS to target the
+        appropriate classes.
+      -->
+      <div class="ei-modal" role="dialog" aria-modal="true" aria-labelledby="ei-modal-title">
+        <div id="ei-modal-content" class="ei-modal__content"><!-- Content injected by JS --></div>
+      </div>
+    </div>
+<!-- Scripts -->
+    <script src="./js/main.js" defer></script>
+
+
+    <!-- Phone mask: keep (###) ###-#### and accept digits only -->
+    <script>
+      (function () {
+        var input = document.getElementById('reservation-phone');
+        if (!input) return;
+
+        var MASK = '(###) ###-####';
+
+        function isDigitKey(e) { return /^[0-9]$/.test(e.key); }
+        function setCharAt(str, idx, ch) { return str.substring(0, idx) + ch + str.substring(idx + 1); }
+        function nextEditableFrom(pos, value) {
+          for (var i = Math.max(0, pos); i < value.length; i++) { if (value[i] === '#') return i; }
+          return -1;
+        }
+        function prevEditableFrom(pos, value) {
+          for (var i = Math.min(value.length - 1, pos); i >= 0; i--) {
+            if (value[i] === '#' || /\d/.test(value[i])) return i;
+          }
+          return -1;
+        }
+        function firstHash(value) { var i = value.indexOf('#'); return i === -1 ? value.length : i; }
+        function clampCaret(i) { try { input.setSelectionRange(i, i); } catch (_) {} }
+
+        if (!input.value) input.value = MASK;
+
+        input.addEventListener('keydown', function (e) {
+          var val = input.value || MASK;
+          var allowed = ['ArrowLeft','ArrowRight','Home','End','Tab'];
+          if (allowed.includes(e.key) || (e.ctrlKey || e.metaKey)) return;
+
+          if (e.key === 'Backspace') {
+            e.preventDefault();
+            var pos = (input.selectionStart || 0) - 1;
+            var i = prevEditableFrom(pos, val);
+            if (i >= 0) { if (/\d/.test(val[i])) val = setCharAt(val, i, '#'); clampCaret(i); }
+            input.value = val;
+            return;
+          }
+          if (e.key === 'Delete') {
+            e.preventDefault();
+            var posD = (input.selectionStart || 0);
+            var iD = prevEditableFrom(posD, val);
+            if (val[posD] && /\d/.test(val[posD])) iD = posD;
+            if (iD >= 0) { if (/\d/.test(val[iD])) val = setCharAt(val, iD, '#'); clampCaret(iD); }
+            input.value = val;
+            return;
+          }
+
+          if (isDigitKey(e)) {
+            e.preventDefault();
+            var caret = input.selectionStart || 0;
+            var idx = nextEditableFrom(caret, val);
+            if (idx === -1) idx = firstHash(val);
+            if (idx !== -1 && idx < val.length) {
+              val = setCharAt(val, idx, e.key);
+              input.value = val;
+              var next = nextEditableFrom(idx + 1, val);
+              clampCaret(next === -1 ? val.length : next);
+            }
+            return;
+          }
+
+          if (e.key.length === 1) { e.preventDefault(); }
+        });
+
+        input.addEventListener('paste', function (e) {
+          e.preventDefault();
+          var data = (e.clipboardData || window.clipboardData).getData('text') || '';
+          var digits = data.replace(/\D/g, '');
+          if (!digits) return;
+
+          var val = input.value || MASK;
+          var caret = input.selectionStart || 0;
+          var idx = nextEditableFrom(caret, val);
+          if (idx === -1) idx = firstHash(val);
+
+          for (var j = 0; j < digits.length && idx !== -1; j++) {
+            val = setCharAt(val, idx, digits[j]);
+            idx = nextEditableFrom(idx + 1, val);
+          }
+          input.value = val;
+          clampCaret(idx === -1 ? val.length : idx);
+        });
+
+        input.addEventListener('focus', function () {
+          var val = input.value || MASK;
+          var idx = firstHash(val);
+          clampCaret(idx);
+        });
+
+        input.addEventListener('blur', function () {
+          if (!input.value || !/\d/.test(input.value)) input.value = MASK;
+        });
+      })();
+    </script>
+
+
+
+  
+    <script>
+    /* EI Scroll Spy for nav
+       - Keeps underline on the section currently in view
+       - Updates aria-current="page" on the active link (a11y-friendly)
+       - Blurs clicked links to prevent sticky :focus underlines when using mouse/touch
+    */
+    (function () {
+      var nav = document.getElementById('ei-nav__list');
+      if (!nav) return;
+      var links = Array.prototype.slice.call(nav.querySelectorAll('.ei-nav__link'));
+      if (!links.length) return;
+
+      // Map href -> section element
+      var map = new Map();
+      links.forEach(function (a) {
+        var href = a.getAttribute('href') || '';
+        if (!href.startsWith('#')) return;
+        var id = href.slice(1);
+        var sec = document.getElementById(id);
+        if (sec) map.set(id, { a: a, sec: sec });
+      });
+
+      function setActive(id) {
+        links.forEach(function (a) { a.removeAttribute('aria-current'); a.dataset.active = 'false'; });
+        var item = map.get(id);
+        if (item) {
+          item.a.setAttribute('aria-current', 'page');
+          item.a.dataset.active = 'true';
+        }
+      }
+
+      // Observe sections; pick the one most centered in viewport
+      var current = null;
+      var entries = {};
+      var io = new IntersectionObserver(function (obsEntries) {
+        obsEntries.forEach(function (e) {
+          entries[e.target.id] = e.intersectionRatio;
+        });
+        // choose highest ratio
+        var maxId = null, maxR = 0;
+        for (var id in entries) {
+          var r = entries[id];
+          if (r > maxR) { maxR = r; maxId = id; }
+        }
+        if (maxId && current !== maxId) {
+          current = maxId;
+          setActive(maxId);
+        }
+      }, { root: null, threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: "-35% 0px -45% 0px" });
+
+      map.forEach(function (v) { io.observe(v.sec); });
+
+      // On click, blur the link after navigation to avoid persistent :focus underline
+      links.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          // Close mobile menu if open
+          var toggle = document.querySelector('.ei-nav__toggle[aria-expanded="true"]');
+          var list = document.getElementById('ei-nav__list');
+          if (toggle && list) {
+            toggle.setAttribute('aria-expanded', 'false');
+            list.classList.remove('ei-nav__list--open');
+          }
+          // Defer blur to after the hash jump
+          setTimeout(function () { a.blur(); }, 150);
+        });
+      });
+
+      // On load with hash, set initial active
+      if (location.hash) {
+        var id0 = location.hash.slice(1);
+        if (map.has(id0)) setActive(id0);
+      }
+    })();
+    </script>
+    
+
+  </body>
+  <a class="demo-back"
+     href="../index.html"
+     aria-label="Back to portfolio"
+     title="Back to portfolio">
+    <img src="../images/favicon.png" alt="Back to portfolio" width="48" height="48">
+  </a>
+</html>

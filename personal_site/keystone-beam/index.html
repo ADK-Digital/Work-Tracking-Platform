@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Keystone &amp; Beam – Crafted Homes, Inside &amp; Out</title>
+    <meta
+      name="description"
+      content="Top-tier residential contracting: outdoor dreamscapes, elegant design, inspired interiors, kitchens, lighting, finish carpentry and more."
+    />
+    <!-- Open Graph / Twitter Card -->
+    <meta property="og:title" content="Keystone &amp; Beam – Crafted Homes, Inside &amp; Out" />
+    <meta
+      property="og:description"
+      content="Premium residential contracting across outdoor living, interiors and kitchens—with detail-driven craftsmanship."
+    />
+    <meta property="og:image" content="images/hero.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Keystone &amp; Beam – Crafted Homes, Inside &amp; Out" />
+    <meta
+      name="twitter:description"
+      content="Outdoor dreamscapes, elegant design, inspired interiors—and much more."
+    />
+    <meta name="twitter:image" content="images/hero.png" />
+
+    <!-- Canonical URL & theme colour -->
+    <link rel="canonical" href="https://example.com/keystone-beam/" />
+    <meta name="theme-color" content="#8C5A2E" />
+
+    <!-- Preload the largest contentful paint image (first source of image-set) -->
+    <link rel="preload" as="image" fetchpriority="high" href="images/hero.avif" />
+
+    <!-- Structured data for LocalBusiness / ProfessionalService -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Keystone & Beam",
+      "url": "https://example.com/keystone-beam/",
+      "telephone": "+1-000-000-0000",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "123 Placeholder Ave",
+        "addressLocality": "City",
+        "addressRegion": "NY",
+        "postalCode": "00000",
+        "addressCountry": "US"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/example",
+        "https://www.instagram.com/example"
+      ]
+    }
+    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Styles -->
+    <!-- Use the compiled stylesheet for Keystone & Beam -->
+    <link rel="stylesheet" href="css\styles.css" />
+  </head>
+  <body>
+    <!-- ==================== HEADER / NAV ==================== -->
+    <header class="header" role="banner">
+      <div class="header__container container">
+        <a href="#home" class="header__logo" aria-label="Home">
+          <img src="assets/logo.svg" alt="Keystone &amp; Beam logo" class="header__logo-image" width="32" height="32" decoding="async" />
+          <span class="header__brand-name--light">Keystone&nbsp;&amp;&nbsp;Beam</span>
+        </a>
+        <nav class="header__nav" aria-label="Primary">
+          <button
+            class="nav__toggle"
+            aria-controls="nav-menu"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="nav__toggle-bar"></span>
+            <span class="nav__toggle-bar"></span>
+            <span class="nav__toggle-bar"></span>
+          </button>
+          <ul id="nav-menu" class="nav__menu" role="menu">
+            <li role="none"><a role="menuitem" href="#home" class="nav__link">Home</a></li>
+            <li role="none"><a role="menuitem" href="#services" class="nav__link">Services</a></li>
+            <li role="none"><a role="menuitem" href="#projects" class="nav__link">Projects</a></li>
+            <li role="none"><a role="menuitem" href="#about" class="nav__link">About</a></li>
+            <li role="none"><a role="menuitem" href="#testimonials" class="nav__link">Testimonials</a></li>
+            <li role="none"><a role="menuitem" href="#contact" class="nav__link">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ==================== HERO ==================== -->
+    <section id="home" class="hero" aria-labelledby="hero-heading">
+      <div class="hero__overlay"></div>
+
+      <!-- Hero content: brand name, headline, subheadline, supporting copy and CTAs -->
+      <div class="hero__content">
+        <span class="header__brand-name--dark">Keystone&nbsp;&amp;&nbsp;Beam</span>
+        <h1 id="hero-heading" class="hero__title"><span>Masterfully </span><span>Crafted Spaces. </span><span>Lifetime Quality. </span></h1>
+        <h2 class="hero__subtitle">
+		  <span>• Entrancing dreamscapes</span>
+		  <span>• Breathtaking design</span>
+		  <span>• Exhilarating renovations</span>
+		</h2>
+
+
+        <p class="hero__text">
+          From cedar-clad cabins and stone fireplaces to modern kitchens and outdoor living,
+          we bring precision detail and premium materials to every project.
+        </p>
+
+        <div class="hero__actions">
+          <a href="#contact" class="btn btn--primary">Request an Estimate</a>
+          <a href="#services" class="btn btn--secondary">Our Services</a>
+        </div>
+      </div>
+
+      <!-- Subtle animated blueprint lines on hero -->
+      <svg class="hero__blueprint" aria-hidden="true" focusable="false" viewBox="0 0 800 450">
+        <line x1="100" y1="50" x2="700" y2="50" />
+        <line x1="100" y1="150" x2="700" y2="150" />
+        <line x1="100" y1="250" x2="700" y2="250" />
+        <line x1="100" y1="350" x2="700" y2="350" />
+        <line x1="200" y1="0" x2="200" y2="400" />
+        <line x1="400" y1="0" x2="400" y2="400" />
+        <line x1="600" y1="0" x2="600" y2="400" />
+      </svg>
+    </section>
+
+    <!-- ==================== SERVICES ==================== -->
+    <section id="services" class="services" aria-labelledby="services-heading">
+      <div class="container container--narrow">
+        <h2 id="services-heading" class="section-heading center">Our Services</h2>
+        <p class="section-intro center">
+          We build spaces that feel as good as they look—meticulous finishes, thoughtful details,
+          and durable construction across interior and exterior projects.
+        </p>
+<div class="services__grid">
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Carpenter's square + pencil -->
+        <rect x="10" y="10" width="8" height="44" fill="currentColor"/>
+        <rect x="10" y="46" width="32" height="8" fill="currentColor"/>
+        <polygon points="40,16 52,28 50,30 38,18" fill="currentColor"/>
+        <rect x="30" y="20" width="18" height="6" transform="rotate(45 39 23)" fill="currentColor"/>
+      </svg>
+    </div>
+    <h3 class="services__title">Finish Carpentry &amp; Millwork</h3>
+    <p class="services__desc">
+      Tongue-and-groove paneling, mantels, beams, custom trim and built-ins—precision fit and natural wood beauty.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Brick wall -->
+        <rect x="8" y="18" width="16" height="8" fill="currentColor"/>
+        <rect x="28" y="18" width="16" height="8" fill="currentColor"/>
+        <rect x="48" y="18" width="8" height="8" fill="currentColor"/>
+        <rect x="12" y="28" width="16" height="8" fill="currentColor"/>
+        <rect x="32" y="28" width="20" height="8" fill="currentColor"/>
+        <rect x="8" y="38" width="16" height="8" fill="currentColor"/>
+        <rect x="28" y="38" width="16" height="8" fill="currentColor"/>
+        <rect x="48" y="38" width="8" height="8" fill="currentColor"/>
+      </svg>
+    </div>
+    <h3 class="services__title">Masonry &amp; Hardscapes</h3>
+    <p class="services__desc">
+      Stamped concrete patios, steps, seating ledges and raised planters—engineered for longevity and curb appeal.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Kitchen cabinet + countertop -->
+        <rect x="10" y="16" width="44" height="6" fill="currentColor"/>
+        <rect x="14" y="22" width="36" height="26" fill="none" stroke="currentColor" stroke-width="4"/>
+        <line x1="32" y1="22" x2="32" y2="48" stroke="currentColor" stroke-width="4"/>
+        <circle cx="28" cy="35" r="1.8" fill="currentColor"/>
+        <circle cx="36" cy="35" r="1.8" fill="currentColor"/>
+      </svg>
+    </div>
+    <h3 class="services__title">Kitchen &amp; Interior Renovations</h3>
+    <p class="services__desc">
+      Granite countertops, cabinetry, flooring, layout updates and finishes that bring modern function to any home.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ceiling pendant light -->
+        <rect x="8" y="12" width="48" height="4" fill="currentColor"/>
+        <rect x="30" y="16" width="4" height="12" fill="currentColor"/>
+        <path d="M22 36 Q32 28 42 36 L42 40 H22 Z" fill="currentColor"/>
+        <path d="M20 44 H44" stroke="currentColor" stroke-width="4"/>
+      </svg>
+    </div>
+    <h3 class="services__title">Lighting &amp; Ceilings</h3>
+    <p class="services__desc">
+      Recessed lighting, coffered ceilings and elegant stair rails—clean lines with a designer finish.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Pergola -->
+        <rect x="10" y="18" width="44" height="6" fill="currentColor"/>
+        <rect x="14" y="14" width="4" height="12" fill="currentColor"/>
+        <rect x="22" y="14" width="4" height="12" fill="currentColor"/>
+        <rect x="30" y="14" width="4" height="12" fill="currentColor"/>
+        <rect x="38" y="14" width="4" height="12" fill="currentColor"/>
+        <rect x="46" y="14" width="4" height="12" fill="currentColor"/>
+        <rect x="14" y="24" width="4" height="28" fill="currentColor"/>
+        <rect x="46" y="24" width="4" height="28" fill="currentColor"/>
+      </svg>
+    </div>
+    <h3 class="services__title">Outdoor Living</h3>
+    <p class="services__desc">
+      Pergolas, decks and covered spaces built with architectural hardware and long-life materials.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+
+  <article class="services__item">
+    <div class="services__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <!-- Clipboard with check (project management) -->
+        <rect x="16" y="16" width="32" height="36" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="4"/>
+        <rect x="24" y="10" width="16" height="8" rx="2" ry="2" fill="currentColor"/>
+        <path d="M24 36 L30 42 L40 30" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3 class="services__title">General Contracting</h3>
+    <p class="services__desc">
+      Full-scope project management—from permits to punch list—for a smooth, on-schedule build.
+    </p>
+    <a href="#contact" class="services__link">Learn More</a>
+  </article>
+</div>
+
+      </div>
+    </section>
+
+    <!-- ==================== PROJECTS ==================== -->
+    <section id="projects" class="projects" aria-labelledby="projects-heading">
+      <div class="container container--narrow">
+        <h2 id="projects-heading" class="section-heading center">Past Projects</h2>
+        <p class="section-intro center">
+          A sampling of recent work. Hover to see details and click any image to view it larger.
+        </p>
+
+        <div class="projects__grid">
+          <figure class="project" data-index="0">
+            <img src="images/gallery1.png" alt="Rustic log-cabin interior with stone fireplace and wood paneling" class="project__img" width="1286" height="966" loading="lazy" decoding="async" />
+            <figcaption class="project__caption">
+              <span class="project__title">Rustic Great Room Finish</span>
+              <span class="project__desc">Cedar paneling, exposed timbers and a floor-to-ceiling masonry fireplace—warm, durable, and perfectly fitted.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="project" data-index="1">
+            <img src="images/gallery2.png" alt="Stamped concrete patio with steps, walls and raised bed" class="project__img" width="1602" height="1073" loading="lazy" decoding="async" />
+            <figcaption class="project__caption">
+              <span class="project__title">Stamped Concrete Patio</span>
+              <span class="project__desc">Complex hardscape with integrated steps, seating ledges and raised planter—engineered drainage and long-life sealants.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="project" data-index="2">
+            <img src="images/gallery3.png" alt="Modern living room with recessed lights and elegant staircase railings" class="project__img" width="1922" height="1080" loading="lazy" decoding="async" />
+            <figcaption class="project__caption">
+              <span class="project__title">Lighting &amp; Rail Upgrade</span>
+              <span class="project__desc">New recessed lighting, refined ceiling details and modern stair rails for a brighter, cleaner interior.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="project" data-index="3">
+            <img src="images/gallery4.png" alt="Kitchen remodel with granite island and built-in gas range" class="project__img" width="1623" height="1082" loading="lazy" decoding="async" />
+            <figcaption class="project__caption">
+              <span class="project__title">Kitchen Remodel</span>
+              <span class="project__desc">Granite countertops, upgraded appliances and cabinetry—balanced task lighting and timeless finishes.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- Lightbox modal -->
+      <div class="lightbox" aria-hidden="true" aria-label="Image viewer">
+        <div class="lightbox__overlay" tabindex="-1"></div>
+        <div class="lightbox__dialog" role="dialog" aria-modal="true">
+          <button class="lightbox__close" aria-label="Close lightbox">&times;</button>
+          <button class="lightbox__prev" aria-label="Previous image">&#10094;</button>
+          <img class="lightbox__img" src="" alt="" width="1922" height="1080" loading="lazy" decoding="async" />
+          <div class="lightbox__caption"></div>
+          <button class="lightbox__next" aria-label="Next image">&#10095;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ABOUT ==================== -->
+    <section id="about" class="about" aria-labelledby="about-heading">
+      <div class="container container--narrow about__container">
+        <div class="about__image-wrapper">
+          <img src="images/team.png" alt="Team placeholder" class="about__image" width="1024" height="1024" loading="lazy" decoding="async" />
+        </div>
+        <div class="about__content">
+          <h2 id="about-heading" class="section-heading center">About Us</h2>
+          <p class="center">
+            Keystone &amp; Beam is a detail-driven residential contractor focused on high-end finishes
+            and thoughtful construction. From log-cabin interiors and stone fireplaces to modern kitchens,
+            lighting and outdoor living, our work blends craftsmanship with practical engineering.
+          </p>
+          <p class="center">
+            We manage projects start-to-finish—planning, permitting, scheduling and trade coordination—so
+            you enjoy a smooth process and a space that feels cohesive and built to last.
+          </p>
+          <div class="about__badges center-badges">
+  <div class="badge">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+      <path d="M20 34 L28 42 L44 26" fill="none" stroke="currentColor" stroke-width="4" />
+    </svg>
+    <span>Licensed &amp; Insured</span>
+  </div>
+  <div class="badge">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="14" y="16" width="36" height="32" fill="none" stroke="currentColor" stroke-width="4" />
+      <path d="M14 28 H50" stroke="currentColor" stroke-width="4" />
+      <circle cx="24" cy="40" r="4" fill="currentColor" />
+      <circle cx="40" cy="40" r="4" fill="currentColor" />
+    </svg>
+    <span>30+ Years Experience</span>
+  </div>
+  <div class="badge">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="16" y="20" width="32" height="24" fill="none" stroke="currentColor" stroke-width="4" />
+      <rect x="24" y="12" width="16" height="8" fill="currentColor" />
+      <rect x="28" y="44" width="8" height="8" fill="currentColor" />
+    </svg>
+    <span>Detail-Driven Craftsmanship</span>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TESTIMONIALS ==================== -->
+    <section id="testimonials" class="testimonials" aria-labelledby="testimonials-heading">
+      <div class="container container--narrow">
+        <h2 id="testimonials-heading" class="section-heading center">What Clients Say</h2>
+        <div class="testimonials__carousel" role="region" aria-label="Testimonials">
+          <div class="testimonial" data-index="0">
+            <blockquote class="testimonial__quote">“Our rustic living room makeover is stunning—paneling, mantel and stonework are flawless. Professional from start to finish.”</blockquote>
+            <p class="testimonial__author">— Sarah &amp; Mark</p>
+            <div class="testimonial__stars" aria-label="Rating: 5 out of 5">
+              <span>&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+            </div>
+          </div>
+          <div class="testimonial" data-index="1">
+            <blockquote class="testimonial__quote">“The new stamped concrete patio transformed our backyard. Drainage, steps and seating were all considered and executed perfectly.”</blockquote>
+            <p class="testimonial__author">— Daniel</p>
+            <div class="testimonial__stars" aria-label="Rating: 5 out of 5">
+              <span>&#9733;&#9733;&#9733;&#9733;&#9734;</span>
+            </div>
+          </div>
+          <div class="testimonial" data-index="2">
+            <blockquote class="testimonial__quote">“Our kitchen now feels high-end and functional. The team handled design tweaks and installation with great care.”</blockquote>
+            <p class="testimonial__author">— Linda</p>
+            <div class="testimonial__stars" aria-label="Rating: 5 out of 5">
+              <span>&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonials__controls">
+          <button class="testimonials__prev" aria-label="Previous testimonial">&#10094;</button>
+          <button class="testimonials__next" aria-label="Next testimonial">&#10095;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CONTACT ==================== -->
+    <section id="contact" class="contact" aria-labelledby="contact-heading">
+      <div class="container container--narrow contact__container">
+        <h2 id="contact-heading" class="section-heading center">Get In Touch</h2>
+        <p class="section-intro center">
+          Tell us about your project—interior, exterior, or whole-home—and we’ll follow up with ideas,
+          an estimated timeline, and a clear budget.
+        </p>
+        <div class="contact__grid center-forms">
+          <form class="contact__form" id="contact-form" action="https://formspree.io/f/{replace-with-your-code}" method="POST" novalidate>
+            <div class="form__group">
+              <label for="name">Name<span aria-hidden="true">*</span></label>
+              <input id="name" name="name" type="text" required />
+              <span class="form__error" aria-live="polite"></span>
+            </div>
+            <div class="form__group">
+              <label for="email">Email<span aria-hidden="true">*</span></label>
+              <input id="email" name="email" type="email" required />
+              <span class="form__error" aria-live="polite"></span>
+            </div>
+            <div class="form__group">
+              <label for="phone">Phone</label>
+              <input id="phone" name="phone" type="tel" />
+              <span class="form__error" aria-live="polite"></span>
+            </div>
+            <div class="form__group">
+              <label for="message">Message<span aria-hidden="true">*</span></label>
+              <textarea id="message" name="message" rows="5" required></textarea>
+              <span class="form__error" aria-live="polite"></span>
+            </div>
+            <button type="submit" class="btn btn--primary form__submit">Send Message</button>
+            <p class="form__note">All fields marked with an asterisk are required.</p>
+          </form>
+
+          <div class="contact__details">
+            <div class="contact__info center">
+              <h3 class="contact__subheading">Contact Information</h3>
+              <p><strong>Phone:</strong> <a href="tel:555-123-4567">(555) 123-4567</a></p>
+              <p><strong>Email:</strong> <a href="mailto:info@keystonebeam.com">info@keystonebeam.com</a></p>
+              <p><strong>Service Area:</strong> Greater Gloversville &amp; surrounding regions</p>
+              <p><a href="https://maps.google.com" target="_blank" rel="noopener">View on Google Maps</a></p>
+            </div>
+            <div class="contact__map">
+              <img src="images/map.png" alt="Service area map" width="1024" height="1024" loading="lazy" decoding="async" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="footer">
+      <div class="footer__inner container container--narrow">
+        <div class="footer__brand">
+          <img src="assets/logo.svg" alt="Keystone &amp; Beam logo" class="footer__logo" width="40" height="40" decoding="async" />
+          <p class="footer__tagline">Masterfully Crafted Spaces. Lifetime Quality.</p>
+        </div>
+        <div class="footer__contact">
+          <p><strong>Phone:</strong> (555) 123-4567</p>
+          <p><strong>Email:</strong> info@keystonebeam.com</p>
+        </div>
+        <ul class="footer__social" aria-label="Social media">
+          <li>
+            <a href="#" aria-label="LinkedIn">
+              <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M100.28 448H7.4V148.9h92.88zm-46.44-340a53.71 53.71 0 1 1 53.69-53.71 53.7 53.7 0 0 1-53.7 53.71zM447.92 448h-92.6V302.4c0-34.7-12.4-58.4-43.44-58.4-23.71 0-37.82 16-44 31.4-2.26 5.5-2.82 13.2-2.82 21v151.6h-92.6s1.24-246.1 0-271.7h92.6v38.5c-.18.3-.43.6-.61.9h.61v-.9c12.3-18.9 34.3-45.9 83.59-45.9 61 0 106.9 39.8 106.9 125.3z" fill="currentColor"/>
+              </svg>
+            </a>
+          </li>
+          <li>
+            <a href="#" aria-label="Instagram">
+              <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9S160.5 370.9 224.1 370.9 339 319.6 339 255.9 287.7 141 224.1 141zm0 186.6c-39.6 0-71.7-32.1-71.7-71.7s32.1-71.7 71.7-71.7 71.7 32.1 71.7 71.7-32.1 71.7-71.7 71.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8s-26.8-11.9-26.8-26.8 12-26.8 26.8-26.8 26.8 11.9 26.8 26.8zm76.1 27.2c-1.7-35.7-9.9-67.3-36.2-93.6S351.6 7.6 315.9 5.9C279-6.1 225.9-1.7 225.9-1.7S172.8-6.1 136.1 5.9c-35.7 1.7-67.3 9.9-93.6 36.2S7.6 160.4 5.9 196.1C-6.1 232.9-1.7 286-1.7 286S-6.1 339.1 5.9 375.8c1.7 35.7 9.9 67.3 36.2 93.6s57.9 34.5 93.6 36.2c36.8 11.8 89.9 7.4 89.9 7.4s53.1 4.3 89.9-7.4c35.7-1.7 67.3-9.9 93.6-36.2s34.5-57.9 36.2-93.6c11.8-36.8 7.4-89.9 7.4-89.9z" fill="currentColor"/>
+              </svg>
+            </a>
+          </li>
+          <li>
+            <a href="#" aria-label="YouTube">
+              <svg viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M549.655 124.083c-6.281-23.639-24.793-42.152-48.433-48.433C465.484 64 288 64 288 64s-177.484 0-213.222 11.65c-23.639 6.281-42.152 24.793-48.433 48.433C16.695 159.821 16.695 256 16.695 256s0 96.179 9.65 131.917c6.281 23.639 24.793 42.152 48.433 48.433C110.516 448 288 448 288 448s177.484 0 213.222-11.65c23.639-6.281 42.152-24.793 48.433-48.433C559.305 352.179 559.305 256 559.305 256s0-96.179-9.65-131.917zM232.795 334.476V177.524L353.568 256l-120.773 78.476z" fill="currentColor"/>
+              </svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <p class="footer__copy">&copy; <span id="year"></span> Keystone &amp; Beam. All rights reserved.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js" defer></script>
+  </body>
+<a class="demo-back"
+   href="../index.html"
+   aria-label="Back to portfolio"
+   title="Back to portfolio">
+  <img src="../images/favicon.png" alt="Back to portfolio" width="48" height="48">
+
+</a>
+
+
+</html>

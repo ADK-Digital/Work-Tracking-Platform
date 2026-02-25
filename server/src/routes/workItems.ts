@@ -1,11 +1,13 @@
 import { ActivityEventType, Prisma, WorkItemType } from '@prisma/client';
 import { Router } from 'express';
-import { requireRole } from '../authorization';
+import { getUserRole, requireRole } from '../authorization';
 import { prisma } from '../db';
 
 const workItemsRouter = Router();
 
 const allowedTypes = new Set<string>(Object.values(WorkItemType));
+
+const MAX_COMMENT_LENGTH = 5000;
 
 const parseIncludeDeleted = (value: unknown): boolean => value === 'true';
 
@@ -22,6 +24,18 @@ const serializeWorkItem = (workItem: {
   createdBy: string | null;
   updatedBy: string | null;
 }) => workItem;
+
+const serializeComment = (comment: {
+  id: string;
+  workItemId: string;
+  body: string;
+  authorEmail: string;
+  authorName: string | null;
+  createdAt: Date;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+}) => comment;
+
 
 workItemsRouter.get('/work-items', async (req, res) => {
   const { type } = req.query;
@@ -287,7 +301,7 @@ workItemsRouter.get('/export/activity', requireRole('admin'), async (req, res) =
 });
 
 workItemsRouter.get('/work-items/:id/activity', async (req, res) => {
-  const item = await prisma.workItem.findUnique({ where: { id: req.params.id }, select: { id: true } });
+  const item = await prisma.workItem.findUnique({ where: { id: req.params.id }, select: { id: true, deletedAt: true } });
 
   if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -299,6 +313,112 @@ workItemsRouter.get('/work-items/:id/activity', async (req, res) => {
   });
 
   return res.json(events);
+});
+
+
+workItemsRouter.get('/work-items/:id/comments', async (req, res) => {
+  const item = await prisma.workItem.findUnique({ where: { id: req.params.id }, select: { id: true, deletedAt: true } });
+
+  if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
+    return res.status(404).json({ error: 'Work item not found.' });
+  }
+
+  const includeDeleted = parseIncludeDeleted(req.query.includeDeleted);
+  const role = await getUserRole(req);
+  const isAdmin = role === 'admin';
+
+  if (includeDeleted && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins may include deleted comments.' });
+  }
+
+  const comments = await prisma.comment.findMany({
+    where: {
+      workItemId: req.params.id,
+      ...(includeDeleted ? {} : { deletedAt: null }),
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return res.json(comments.map(serializeComment));
+});
+
+workItemsRouter.post('/work-items/:id/comments', async (req, res) => {
+  const actor = req.user!.email;
+  const authorName = req.user!.name ?? null;
+  const rawBody = typeof req.body?.body === 'string' ? req.body.body : '';
+  const body = rawBody.trim();
+
+  if (!body) {
+    return res.status(400).json({ error: 'Comment body is required.' });
+  }
+
+  if (body.length > MAX_COMMENT_LENGTH) {
+    return res.status(400).json({ error: `Comment body must be ${MAX_COMMENT_LENGTH} characters or fewer.` });
+  }
+
+  const item = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+
+  if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
+    return res.status(404).json({ error: 'Work item not found.' });
+  }
+
+  const comment = await prisma.$transaction(async (tx) => {
+    const created = await tx.comment.create({
+      data: {
+        workItemId: req.params.id,
+        body,
+        authorEmail: actor,
+        authorName,
+      },
+    });
+
+    await tx.activityEvent.create({
+      data: {
+        workItemId: req.params.id,
+        type: ActivityEventType.updated,
+        message: 'Comment added',
+        actor,
+      },
+    });
+
+    return created;
+  });
+
+  return res.status(201).json(serializeComment(comment));
+});
+
+workItemsRouter.delete('/comments/:commentId', requireRole('admin'), async (req, res) => {
+  const actor = req.user!.email;
+  const existing = await prisma.comment.findUnique({ where: { id: req.params.commentId } });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Comment not found.' });
+  }
+
+  if (existing.deletedAt) {
+    return res.status(409).json({ error: 'Comment already deleted.' });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.comment.update({
+      where: { id: req.params.commentId },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: actor,
+      },
+    });
+
+    await tx.activityEvent.create({
+      data: {
+        workItemId: existing.workItemId,
+        type: ActivityEventType.updated,
+        message: 'Comment deleted',
+        actor,
+      },
+    });
+  });
+
+  return res.status(204).send();
 });
 
 export default workItemsRouter;

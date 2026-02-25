@@ -73,6 +73,8 @@ npm run seed
 npm run dev
 ```
 
+> Migrations now include a `Comment` table used for per-work-item discussion threads.
+
 Backend runs at `http://localhost:3001`.
 
 ## Authorization setup (RBAC)
@@ -136,6 +138,9 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `DELETE /api/work-items/:id` (soft delete, **admin only**)
 - `POST /api/work-items/:id/restore` (**admin only**)
 - `GET /api/work-items/:id/activity`
+- `GET /api/work-items/:id/comments`
+- `POST /api/work-items/:id/comments`
+- `DELETE /api/comments/:commentId` (**admin only**, soft delete)
 - `GET /api/export/work-items?type=task|purchase_request&includeDeleted=true|false` (**admin only**)
 - `GET /api/export/activity?workItemId=:id` (**admin only**)
 

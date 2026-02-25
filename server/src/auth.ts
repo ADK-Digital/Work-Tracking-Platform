@@ -1,9 +1,8 @@
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oidc';
 import type { Express, RequestHandler } from 'express';
-import type { Pool } from 'pg';
+const session = require('express-session');
+const connectPgSimple = require('connect-pg-simple');
+const passport = require('passport');
+const { Strategy: GoogleStrategy } = require('passport-google-oidc');
 
 export const parseAllowedDomains = (): Set<string> =>
   new Set(
@@ -13,7 +12,7 @@ export const parseAllowedDomains = (): Set<string> =>
       .filter(Boolean),
   );
 
-export const setupAuth = (app: Express, options: { pgPool: Pool | null }) => {
+export const setupAuth = (app: Express, options: { pgPool: any | null }) => {
   const PgStore = connectPgSimple(session);
   const sessionSecret = process.env.SESSION_SECRET;
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -35,7 +34,7 @@ export const setupAuth = (app: Express, options: { pgPool: Pool | null }) => {
         callbackURL: googleCallbackUrl,
         scope: ['openid', 'profile', 'email'],
       },
-      (_issuer, profile, cb) => {
+      (_issuer: string, profile: { emails?: Array<{ value?: string }>; displayName?: string; id: string }, cb: (err: unknown, user?: Express.User | false, info?: { message: string }) => void) => {
         const email = profile.emails?.[0]?.value?.toLowerCase();
 
         if (!email) {
@@ -57,8 +56,8 @@ export const setupAuth = (app: Express, options: { pgPool: Pool | null }) => {
     ),
   );
 
-  passport.serializeUser((user, done) => done(null, user));
-  passport.deserializeUser((user: Express.User, done) => done(null, user));
+  passport.serializeUser((user: Express.User, done: (err: unknown, user?: Express.User) => void) => done(null, user));
+  passport.deserializeUser((user: Express.User, done: (err: unknown, user?: Express.User) => void) => done(null, user));
 
   app.use(
     session({

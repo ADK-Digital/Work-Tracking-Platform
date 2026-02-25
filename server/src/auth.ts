@@ -5,7 +5,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oidc';
 import type { Express, RequestHandler } from 'express';
 import type { Pool } from 'pg';
 
-const parseAllowedDomains = (): Set<string> =>
+export const parseAllowedDomains = (): Set<string> =>
   new Set(
     (process.env.ALLOWED_EMAIL_DOMAINS ?? '')
       .split(',')
@@ -65,10 +65,11 @@ export const setupAuth = (app: Express, options: { pgPool: Pool | null }) => {
       secret: sessionSecret,
       resave: false,
       saveUninitialized: false,
+      proxy: true,
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
       },
       store: options.pgPool
         ? new PgStore({

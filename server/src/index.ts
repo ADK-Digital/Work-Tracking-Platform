@@ -1,9 +1,10 @@
+import { randomUUID } from 'crypto';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import passport from 'passport';
 import { Pool } from 'pg';
-import { requireAuth, setupAuth } from './auth';
+import { parseAllowedDomains, requireAuth, setupAuth } from './auth';
 import { getUserRole, requireAllowedUser } from './authorization';
 import { prisma } from './db';
 import healthRouter from './routes/health';
@@ -14,6 +15,12 @@ dotenv.config();
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const isProd = process.env.NODE_ENV === 'production';
+const trustProxyEnabled = isProd || process.env.TRUST_PROXY === 'true';
+
+if (trustProxyEnabled) {
+  app.set('trust proxy', 1);
+}
 
 const sessionPool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
@@ -24,6 +31,19 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+  const requestId = req.header('x-request-id') || randomUUID();
+  res.setHeader('X-Request-Id', requestId);
+
+  res.on('finish', () => {
+    const elapsedNs = Number(process.hrtime.bigint() - startedAt);
+    const durationMs = (elapsedNs / 1_000_000).toFixed(1);
+    console.info(`[http] request_id=${requestId} method=${req.method} path=${req.originalUrl} status=${res.statusCode} duration_ms=${durationMs}`);
+  });
+
+  next();
+});
 
 setupAuth(app, { pgPool: sessionPool });
 
@@ -74,6 +94,16 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 const server = app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
+  console.log(
+    '[startup] config',
+    JSON.stringify({
+      nodeEnv: process.env.NODE_ENV ?? 'development',
+      frontendUrl,
+      googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3001/auth/google/callback',
+      allowedDomains: [...parseAllowedDomains()],
+      trustProxyEnabled,
+    }),
+  );
 });
 
 const shutdown = async () => {

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { TASK_PROJECT_STATUSES, type SortOption, type TaskProjectItem } from "../../types/workItem";
+import { Link } from "react-router-dom";
+import {
+  TASK_PROJECT_STATUSES,
+  type SortOption,
+  type TaskProjectItem,
+  type TaskProjectStatus
+} from "../../types/workItem";
 import { workItemsService } from "../../services/workItemsService";
 import { WidgetCard } from "./WidgetCard";
 import { Select } from "../ui/Select";
@@ -16,7 +22,7 @@ type FormState = {
   title: string;
   requester: string;
   owner: string;
-  status: string;
+  status: TaskProjectStatus;
   category: "downtime" | "project";
   tags: string;
   description: string;
@@ -106,7 +112,7 @@ export const TasksWidget = ({ resetSignal }: { resetSignal: number }) => {
       title: form.title.trim(),
       requester: form.requester.trim(),
       owner: form.owner.trim(),
-      status: form.status,
+      status: form.status as TaskProjectStatus,
       category: form.category,
       tags: form.tags
         .split(",")
@@ -175,7 +181,9 @@ export const TasksWidget = ({ resetSignal }: { resetSignal: number }) => {
               <div key={item.id} className="rounded-lg border border-slate-200 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{item.title}</p>
+                    <Link to={`/work-items/${item.id}`} className="cursor-pointer font-medium text-slate-900 hover:underline">
+                      {item.title}
+                    </Link>
                     <p className="text-xs text-slate-500">
                       {item.category === "downtime" ? "Downtime" : "Project"} • Owner {item.owner} • Created {formatDate(item.createdAt)}
                     </p>
@@ -186,7 +194,7 @@ export const TasksWidget = ({ resetSignal }: { resetSignal: number }) => {
                   <Select
                     options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))}
                     value={item.status}
-                    onChange={(e) => void updateInline(item.id, { status: e.target.value })}
+                    onChange={(e) => void updateInline(item.id, { status: e.target.value as TaskProjectStatus })}
                   />
                   <Select
                     options={owners.map((owner) => ({ label: owner, value: owner }))}
@@ -211,7 +219,7 @@ export const TasksWidget = ({ resetSignal }: { resetSignal: number }) => {
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
           <Input label="Owner" value={form.owner} error={errors.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
-          <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))} onChange={(e) => setForm({ ...form, status: e.target.value })} />
+          <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select
             label="Category"
             value={form.category}

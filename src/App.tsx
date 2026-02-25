@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Route, Routes } from "react-router-dom";
 import { Dashboard } from "./pages/Dashboard";
+import { WorkItemDetailPage } from "./pages/WorkItemDetailPage";
 import { workItemsService } from "./services/workItemsService";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 
@@ -16,7 +18,15 @@ const AppContent = () => {
     setResetting(false);
   };
 
-  return <Dashboard onReset={handleReset} resetting={resetting} resetSignal={resetSignal} />;
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard onReset={handleReset} resetting={resetting} resetSignal={resetSignal} />} />
+      <Route
+        path="/work-items/:id"
+        element={<WorkItemDetailPage onReset={handleReset} resetting={resetting} />}
+      />
+    </Routes>
+  );
 };
 
 const App = () => (

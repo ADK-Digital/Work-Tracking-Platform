@@ -58,10 +58,16 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     }
 
     setLoading(true);
-    const [found, events] = await Promise.all([workItemsService.getWorkItemById(id), workItemsService.listActivity(id)]);
-    setItem(found);
-    setActivity(events);
-    setLoading(false);
+    try {
+      const [found, events] = await Promise.all([workItemsService.getWorkItemById(id), workItemsService.listActivity(id)]);
+      setItem(found);
+      setActivity(events);
+    } catch {
+      setItem(null);
+      setActivity([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

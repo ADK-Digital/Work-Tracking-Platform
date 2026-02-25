@@ -53,9 +53,14 @@ export const TasksWidget = ({ resetSignal }: { resetSignal: number }) => {
 
   const loadItems = async () => {
     setLoading(true);
-    const data = await workItemsService.getWorkItems({ type: "task_project", statusFilter: filter, sort });
-    setItems(data as TaskProjectItem[]);
-    setLoading(false);
+    try {
+      const data = await workItemsService.getWorkItems({ type: "task_project", statusFilter: filter, sort });
+      setItems(data as TaskProjectItem[]);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

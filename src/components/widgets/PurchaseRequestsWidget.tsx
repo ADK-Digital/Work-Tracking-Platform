@@ -57,13 +57,18 @@ export const PurchaseRequestsWidget = ({ resetSignal }: { resetSignal: number })
 
   const loadItems = async () => {
     setLoading(true);
-    const data = await workItemsService.getWorkItems({
-      type: "purchase_request",
-      statusFilter: filter,
-      sort
-    });
-    setItems(data as PurchaseRequestItem[]);
-    setLoading(false);
+    try {
+      const data = await workItemsService.getWorkItems({
+        type: "purchase_request",
+        statusFilter: filter,
+        sort
+      });
+      setItems(data as PurchaseRequestItem[]);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

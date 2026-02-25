@@ -56,6 +56,9 @@ For Google Workspace SSO, also configure:
 - `GOOGLE_IMPERSONATE_ADMIN_EMAIL` (optional: Workspace admin email for domain-wide delegation)
 - `GOOGLE_WORKSPACE_CUSTOMER_ID` (optional; reserved for future Admin SDK lookups)
 - `FRONTEND_URL` (frontend origin, default `http://localhost:5173`)
+- `TRUST_PROXY` (`true`, `false`, or proxy hop count; defaults to `1` in production and `0` in development)
+- `RATE_LIMIT_WINDOW_MS` (optional API rate-limit window in milliseconds, default `900000`)
+- `RATE_LIMIT_MAX` (optional API rate-limit max requests per IP per window, default `100`)
 
 ### 3a) Create a Google OAuth client (Web application)
 
@@ -156,6 +159,7 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 > In API mode, all `/api/*` endpoints except `/api/health` and `/api/ready` require an authenticated Google Workspace session.
 
 Attachment upload policy defaults:
+- JSON and URL-encoded request body size limit: `1 MB`
 - Max file size: `25 MB` (`ATTACHMENT_MAX_SIZE_BYTES`)
 - Allowed MIME types are controlled by `ATTACHMENT_ALLOWED_TYPES`
 

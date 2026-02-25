@@ -141,6 +141,17 @@ export const workItemsService = {
       throw error;
     }
   },
+  async searchWorkItems(...args: Parameters<typeof baseService.searchWorkItems>) {
+    try {
+      return await baseService.searchWorkItems(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
   async resetDemoData(...args: Parameters<typeof baseService.resetDemoData>) {
     try {
       return await baseService.resetDemoData(...args);

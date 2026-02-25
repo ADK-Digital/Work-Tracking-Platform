@@ -79,4 +79,37 @@ export interface Comment {
   deletedBy?: string | null;
 }
 
+export interface SearchFilters {
+  type?: WorkItemType;
+  status?: string;
+  owner?: string;
+  includeDeleted?: boolean;
+  limit?: number;
+}
+
+export interface WorkItemSearchResult {
+  kind: "workItem";
+  workItem: WorkItem;
+  matchedFields: string[];
+  snippet?: string;
+}
+
+export interface CommentSearchResult {
+  kind: "comment";
+  workItemId: string;
+  comment: Comment;
+  matchedFields: string[];
+  snippet?: string;
+}
+
+export interface ActivitySearchResult {
+  kind: "activity";
+  workItemId: string;
+  activity: ActivityEvent;
+  matchedFields: string[];
+  snippet?: string;
+}
+
+export type SearchResult = WorkItemSearchResult | CommentSearchResult | ActivitySearchResult;
+
 export type CreateWorkItemInput = Omit<PurchaseRequestItem, "id" | "createdAt" | "deleted"> | Omit<TaskProjectItem, "id" | "createdAt" | "deleted">;

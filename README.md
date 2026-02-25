@@ -141,6 +141,11 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `GET /api/work-items/:id/comments`
 - `POST /api/work-items/:id/comments`
 - `DELETE /api/comments/:commentId` (**admin only**, soft delete)
+- `GET /api/search?q=:query&type=task|purchase_request&status=:status&owner=:owner&includeDeleted=true|false&limit=50`
+  - searches across work item fields (`title`, `description`, `status`, `owner`, `createdBy`, `updatedBy`, `type`), comments (`body`, `authorEmail`), and activity (`message`, `actor`)
+  - also supports UUID-style `q` (exact work item id) and `YYYY-MM-DD` `q` (matches work item `createdAt` date)
+  - `includeDeleted=true` is **admin-only**; non-admin requests are rejected with 403
+  - attachment filename search is currently stubbed (no attachment table yet); response includes metadata noting the stub
 - `GET /api/export/work-items?type=task|purchase_request&includeDeleted=true|false` (**admin only**)
 - `GET /api/export/activity?workItemId=:id` (**admin only**)
 

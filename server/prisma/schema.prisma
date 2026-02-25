@@ -36,6 +36,11 @@ model WorkItem {
 
   activityEvents ActivityEvent[]
   comments       Comment[]
+
+  @@index([updatedAt])
+  @@index([type])
+  @@index([status])
+  @@index([owner])
 }
 
 model ActivityEvent {
@@ -49,6 +54,7 @@ model ActivityEvent {
   workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@index([workItemId])
+  @@index([workItemId, timestamp])
 }
 
 model Comment {

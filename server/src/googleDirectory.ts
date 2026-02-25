@@ -1,5 +1,10 @@
-import { admin_directory_v1, google } from 'googleapis';
 import fs from 'node:fs';
+
+const getGoogleApis = (): any => {
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const req = eval('require');
+  return req('googleapis');
+};
 
 type CacheEntry = {
   isMember: boolean;
@@ -53,13 +58,15 @@ const parseServiceAccountCredentials = (): { credentials?: Record<string, unknow
   throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON must be a JSON string or a valid file path.');
 };
 
-const getDirectoryClient = async (): Promise<admin_directory_v1.Admin | null> => {
+const getDirectoryClient = async (): Promise<any | null> => {
   const impersonateAdminEmail = process.env.GOOGLE_IMPERSONATE_ADMIN_EMAIL;
   const authSource = parseServiceAccountCredentials();
 
   if (!impersonateAdminEmail || !authSource) {
     return null;
   }
+
+  const { google } = getGoogleApis();
 
   const auth = new google.auth.GoogleAuth({
     ...(authSource.credentials ? { credentials: authSource.credentials } : {}),

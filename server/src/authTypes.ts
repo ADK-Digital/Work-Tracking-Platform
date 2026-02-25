@@ -13,5 +13,15 @@ declare global {
       name: string;
       googleSub: string;
     }
+
+    interface Request {
+      params: Record<string, string>;
+      user?: User;
+      session: {
+        destroy(callback: (err?: unknown) => void): void;
+      };
+      isAuthenticated(): boolean;
+      logout(callback: (err?: unknown) => void): void;
+    }
   }
 }

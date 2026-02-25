@@ -167,7 +167,8 @@ attachmentsRouter.get('/attachments/:attachmentId/download', async (req, res) =>
 
 attachmentsRouter.delete('/attachments/:attachmentId', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const attachment = await prisma.attachment.findUnique({ where: { id: req.params.attachmentId } });
+  const attachmentId = String(req.params.attachmentId);
+  const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
   if (!attachment) {
     return res.status(404).json({ error: 'Attachment not found.' });
   }
@@ -178,7 +179,7 @@ attachmentsRouter.delete('/attachments/:attachmentId', requireRole('admin'), asy
 
   await prisma.$transaction(async (tx) => {
     await tx.attachment.update({
-      where: { id: req.params.attachmentId },
+      where: { id: attachmentId },
       data: {
         deletedAt: new Date(),
         deletedBy: actor,

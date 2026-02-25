@@ -2,8 +2,8 @@ import { randomUUID } from 'crypto';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import passport from 'passport';
-import { Pool } from 'pg';
+const passport = require('passport');
+const { Pool } = require('pg');
 import { parseAllowedDomains, requireAuth, setupAuth } from './auth';
 import { getUserRole, requireAllowedUser } from './authorization';
 import { prisma } from './db';
@@ -58,12 +58,12 @@ app.get(
 );
 
 app.post('/auth/logout', (req, res, next) => {
-  req.logout((logoutError) => {
+  req.logout((logoutError: unknown) => {
     if (logoutError) {
       return next(logoutError);
     }
 
-    req.session.destroy((sessionError) => {
+    req.session.destroy((sessionError: unknown) => {
       if (sessionError) {
         return next(sessionError);
       }

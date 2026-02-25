@@ -303,7 +303,8 @@ workItemsRouter.get('/search', async (req, res) => {
 });
 
 workItemsRouter.get('/work-items/:id', async (req, res) => {
-  const item = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+  const workItemId = String(req.params.id);
+  const item = await prisma.workItem.findUnique({ where: { id: workItemId } });
 
   if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -358,7 +359,8 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
 
 workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+  const workItemId = String(req.params.id);
+  const existing = await prisma.workItem.findUnique({ where: { id: workItemId } });
 
   if (!existing) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -420,12 +422,12 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    const next = await tx.workItem.update({ where: { id: req.params.id }, data });
+    const next = await tx.workItem.update({ where: { id: workItemId }, data });
 
     if (events.length > 0) {
       await tx.activityEvent.createMany({
         data: events.map((event) => ({
-          workItemId: req.params.id,
+          workItemId: workItemId,
           type: event.type,
           message: event.message,
           actor,
@@ -441,7 +443,8 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
 
 workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+  const workItemId = String(req.params.id);
+  const existing = await prisma.workItem.findUnique({ where: { id: workItemId } });
 
   if (!existing) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -453,13 +456,13 @@ workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res)
 
   await prisma.$transaction(async (tx) => {
     await tx.workItem.update({
-      where: { id: req.params.id },
+      where: { id: workItemId },
       data: { deletedAt: new Date(), updatedBy: actor },
     });
 
     await tx.activityEvent.create({
       data: {
-        workItemId: req.params.id,
+        workItemId: workItemId,
         type: ActivityEventType.deleted,
         message: 'Work item deleted',
         actor,
@@ -473,7 +476,8 @@ workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res)
 
 workItemsRouter.post('/work-items/:id/restore', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+  const workItemId = String(req.params.id);
+  const existing = await prisma.workItem.findUnique({ where: { id: workItemId } });
 
   if (!existing) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -485,13 +489,13 @@ workItemsRouter.post('/work-items/:id/restore', requireRole('admin'), async (req
 
   const restored = await prisma.$transaction(async (tx) => {
     const next = await tx.workItem.update({
-      where: { id: req.params.id },
+      where: { id: workItemId },
       data: { deletedAt: null, updatedBy: actor },
     });
 
     await tx.activityEvent.create({
       data: {
-        workItemId: req.params.id,
+        workItemId: workItemId,
         type: ActivityEventType.restored,
         message: 'Work item restored',
         actor,
@@ -583,6 +587,7 @@ workItemsRouter.get('/work-items/:id/comments', async (req, res) => {
 
 workItemsRouter.post('/work-items/:id/comments', async (req, res) => {
   const actor = req.user!.email;
+  const workItemId = String(req.params.id);
   const authorName = req.user!.name ?? null;
   const rawBody = typeof req.body?.body === 'string' ? req.body.body : '';
   const body = rawBody.trim();
@@ -604,7 +609,7 @@ workItemsRouter.post('/work-items/:id/comments', async (req, res) => {
   const comment = await prisma.$transaction(async (tx) => {
     const created = await tx.comment.create({
       data: {
-        workItemId: req.params.id,
+        workItemId: workItemId,
         body,
         authorEmail: actor,
         authorName,
@@ -613,7 +618,7 @@ workItemsRouter.post('/work-items/:id/comments', async (req, res) => {
 
     await tx.activityEvent.create({
       data: {
-        workItemId: req.params.id,
+        workItemId: workItemId,
         type: ActivityEventType.updated,
         message: 'Comment added',
         actor,
@@ -628,7 +633,8 @@ workItemsRouter.post('/work-items/:id/comments', async (req, res) => {
 
 workItemsRouter.delete('/comments/:commentId', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const existing = await prisma.comment.findUnique({ where: { id: req.params.commentId } });
+  const commentId = String(req.params.commentId);
+  const existing = await prisma.comment.findUnique({ where: { id: commentId } });
 
   if (!existing) {
     return res.status(404).json({ error: 'Comment not found.' });
@@ -640,7 +646,7 @@ workItemsRouter.delete('/comments/:commentId', requireRole('admin'), async (req,
 
   await prisma.$transaction(async (tx) => {
     await tx.comment.update({
-      where: { id: req.params.commentId },
+      where: { id: commentId },
       data: {
         deletedAt: new Date(),
         deletedBy: actor,

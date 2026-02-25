@@ -18,6 +18,7 @@ enum ActivityEventType {
   status_changed
   owner_changed
   deleted
+  restored
 }
 
 model WorkItem {

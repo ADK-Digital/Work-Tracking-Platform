@@ -26,6 +26,11 @@ const serializeWorkItem = (workItem: {
 workItemsRouter.get('/work-items', async (req, res) => {
   const { type } = req.query;
   const includeDeleted = parseIncludeDeleted(req.query.includeDeleted);
+  const isAdmin = req.authz?.role === 'admin';
+
+  if (includeDeleted && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins may include deleted items.' });
+  }
 
   if (type && (typeof type !== 'string' || !allowedTypes.has(type))) {
     return res.status(400).json({ error: 'Invalid type query parameter.' });
@@ -47,7 +52,7 @@ workItemsRouter.get('/work-items', async (req, res) => {
 workItemsRouter.get('/work-items/:id', async (req, res) => {
   const item = await prisma.workItem.findUnique({ where: { id: req.params.id } });
 
-  if (!item) {
+  if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
     return res.status(404).json({ error: 'Work item not found.' });
   }
 
@@ -212,10 +217,79 @@ workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res)
   return res.status(204).send();
 });
 
+
+workItemsRouter.post('/work-items/:id/restore', requireRole('admin'), async (req, res) => {
+  const actor = req.user!.email;
+  const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Work item not found.' });
+  }
+
+  if (!existing.deletedAt) {
+    return res.status(409).json({ error: 'Work item is not deleted.' });
+  }
+
+  const restored = await prisma.$transaction(async (tx) => {
+    const next = await tx.workItem.update({
+      where: { id: req.params.id },
+      data: { deletedAt: null, updatedBy: actor },
+    });
+
+    await tx.activityEvent.create({
+      data: {
+        workItemId: req.params.id,
+        type: ActivityEventType.restored,
+        message: 'Work item restored',
+        actor,
+      },
+    });
+
+    return next;
+  });
+
+  return res.json(serializeWorkItem(restored));
+});
+
+workItemsRouter.get('/export/work-items', requireRole('admin'), async (req, res) => {
+  const { type } = req.query;
+  const includeDeleted = parseIncludeDeleted(req.query.includeDeleted);
+  const isAdmin = req.authz?.role === 'admin';
+
+  if (includeDeleted && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins may include deleted items.' });
+  }
+
+  if (type && (typeof type !== 'string' || !allowedTypes.has(type))) {
+    return res.status(400).json({ error: 'Invalid type query parameter.' });
+  }
+
+  const workItems = await prisma.workItem.findMany({
+    where: {
+      ...(type ? { type: type as WorkItemType } : {}),
+      ...(includeDeleted ? {} : { deletedAt: null }),
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return res.json({ workItems: workItems.map(serializeWorkItem) });
+});
+
+workItemsRouter.get('/export/activity', requireRole('admin'), async (req, res) => {
+  const workItemId = typeof req.query.workItemId === 'string' ? req.query.workItemId : undefined;
+
+  const activityEvents = await prisma.activityEvent.findMany({
+    where: workItemId ? { workItemId } : undefined,
+    orderBy: { timestamp: 'desc' },
+  });
+
+  return res.json({ activityEvents });
+});
+
 workItemsRouter.get('/work-items/:id/activity', async (req, res) => {
   const item = await prisma.workItem.findUnique({ where: { id: req.params.id }, select: { id: true } });
 
-  if (!item) {
+  if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
     return res.status(404).json({ error: 'Work item not found.' });
   }
 

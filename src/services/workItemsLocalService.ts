@@ -114,10 +114,10 @@ export const workItemsLocalService = {
     });
   },
 
-  async getWorkItemById(id: string): Promise<WorkItem | null> {
+  async getWorkItemById(id: string, options?: { includeDeleted?: boolean }): Promise<WorkItem | null> {
     return withLatency(() => {
       const item = readItems().find((workItem) => workItem.id === id);
-      if (!item || item.deleted) {
+      if (!item || (!options?.includeDeleted && item.deleted)) {
         return null;
       }
 
@@ -195,6 +195,29 @@ export const workItemsLocalService = {
         type: "deleted",
         message: "Work item deleted"
       });
+    });
+  },
+
+
+  async restoreWorkItem(id: string): Promise<WorkItem> {
+    return withLatency(() => {
+      const items = readItems();
+      const index = items.findIndex((item) => item.id === id);
+
+      if (index < 0) {
+        throw new Error("Work item not found");
+      }
+
+      const updated = { ...items[index], deleted: false } as WorkItem;
+      items[index] = updated;
+      writeItems(items);
+      recordActivity({
+        workItemId: id,
+        type: "restored",
+        message: "Work item restored"
+      });
+
+      return updated;
     });
   },
 

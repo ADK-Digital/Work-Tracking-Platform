@@ -1,26 +1,101 @@
-# Special Projects Tracker (Frontend Prototype)
+# Special Projects Tracker
 
-An internal Asana-lite style prototype built with **Vite + React + TypeScript + Tailwind CSS**.
+An internal Asana-lite style project with a **Vite + React + TypeScript** frontend prototype and a new **Node.js + Express + Prisma + Postgres** backend.
 
-## Run locally
+## Frontend (current behavior)
+
+The frontend still uses browser `localStorage` for persistence in this phase.
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Data persistence
+## Backend setup (Phase 1)
 
-- Data is stored in browser `localStorage` under key: `special-projects-tracker-work-items`.
-- On first load, seed demo data is automatically inserted if the key is missing.
-- All reads/writes go through `src/services/workItemsService.ts`.
+### 1) Start Postgres with Docker
 
-## Reset demo data
+```bash
+docker compose up -d
+```
 
-Use the **Reset Demo Data** button in the header. This calls `resetDemoData()` in the service and reloads both widgets.
+This starts a local Postgres instance on `localhost:5432`.
 
-## Extending with more widgets
+### 2) Install backend dependencies
 
-- Add new widgets in `src/components/widgets/`.
-- Reuse `WidgetCard` (`src/components/widgets/WidgetCard.tsx`) for consistent framing.
-- Keep filtering/sorting and persistence in service functions (`workItemsService`) so widgets stay focused on UI.
+```bash
+cd server
+npm install
+```
+
+### 3) Configure environment
+
+```bash
+cp .env.example .env
+```
+
+`DATABASE_URL` in `.env.example` is already configured to the local Docker Postgres service.
+
+### 4) Run Prisma migration
+
+```bash
+npm run prisma:migrate -- --name init
+```
+
+### 5) Seed demo data
+
+```bash
+npm run seed
+```
+
+### 6) Run backend server
+
+```bash
+npm run dev
+```
+
+Backend runs at `http://localhost:3001`.
+
+## API endpoints
+
+- `GET /api/health`
+- `GET /api/work-items?type=task|purchase_request&includeDeleted=false`
+- `GET /api/work-items/:id`
+- `POST /api/work-items`
+- `PATCH /api/work-items/:id`
+- `DELETE /api/work-items/:id` (soft delete)
+- `GET /api/work-items/:id/activity`
+
+## Quick curl examples
+
+```bash
+# Health
+curl http://localhost:3001/api/health
+
+# List non-deleted work items
+curl http://localhost:3001/api/work-items
+
+# List only tasks
+curl "http://localhost:3001/api/work-items?type=task"
+
+# Create a work item
+curl -X POST http://localhost:3001/api/work-items \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type":"task",
+    "title":"Follow up with design",
+    "status":"todo",
+    "owner":"Sam"
+  }'
+
+# Update a work item
+curl -X PATCH http://localhost:3001/api/work-items/<WORK_ITEM_ID> \
+  -H "Content-Type: application/json" \
+  -d '{"status":"in_progress"}'
+
+# Soft delete a work item
+curl -X DELETE http://localhost:3001/api/work-items/<WORK_ITEM_ID>
+
+# View activity for a work item
+curl http://localhost:3001/api/work-items/<WORK_ITEM_ID>/activity
+```

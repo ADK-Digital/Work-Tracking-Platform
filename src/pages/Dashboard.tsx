@@ -17,7 +17,9 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const [authWarning, setAuthWarning] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
+  const canUseDeletedFeatures = isApiModeEnabled && authUser?.role === "admin";
 
   const loadMe = async () => {
     if (!isApiModeEnabled) {
@@ -91,9 +93,30 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       {isApiModeEnabled && forbiddenWarning ? (
         <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">{forbiddenWarning}</div>
       ) : null}
+      {canUseDeletedFeatures ? (
+        <div className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+          <input
+            id="show-deleted"
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(event) => setShowDeleted(event.target.checked)}
+          />
+          <label htmlFor="show-deleted">Show deleted</label>
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <PurchaseRequestsWidget resetSignal={resetSignal} canManage={canManage} />
-        <TasksWidget resetSignal={resetSignal} canManage={canManage} />
+        <PurchaseRequestsWidget
+          resetSignal={resetSignal}
+          canManage={canManage}
+          includeDeleted={showDeleted}
+          canRestore={canUseDeletedFeatures}
+        />
+        <TasksWidget
+          resetSignal={resetSignal}
+          canManage={canManage}
+          includeDeleted={showDeleted}
+          canRestore={canUseDeletedFeatures}
+        />
       </div>
     </AppShell>
   );

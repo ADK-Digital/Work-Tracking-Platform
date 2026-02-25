@@ -23,6 +23,22 @@ export const Header = ({ onReset, resetting, showAuthControls = false, authUser,
         </Button>
         {showAuthControls ? authUser ? (
           <>
+            {authUser.role === "admin" ? (
+              <>
+                <a
+                  href={`${API_BASE_URL}/api/export/work-items`}
+                  className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  Export Work Items (JSON)
+                </a>
+                <a
+                  href={`${API_BASE_URL}/api/export/activity`}
+                  className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  Export Activity (JSON)
+                </a>
+              </>
+            ) : null}
             <span className="text-sm text-slate-600">{authUser.email}</span>
             <Button variant="secondary" onClick={() => void onSignOut?.()}>
               Sign out

@@ -96,6 +96,18 @@ export const workItemsService = {
       throw error;
     }
   },
+
+  async restoreWorkItem(...args: Parameters<typeof baseService.restoreWorkItem>) {
+    try {
+      return await baseService.restoreWorkItem(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
   async resetDemoData(...args: Parameters<typeof baseService.resetDemoData>) {
     try {
       return await baseService.resetDemoData(...args);

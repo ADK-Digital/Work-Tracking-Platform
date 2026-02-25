@@ -120,11 +120,11 @@ export const workItemsApiService = {
     return Promise.resolve();
   },
 
-  async getWorkItemById(id: string): Promise<WorkItem | null> {
+  async getWorkItemById(id: string, options?: { includeDeleted?: boolean }): Promise<WorkItem | null> {
     try {
       const item = await apiFetch<BackendWorkItem>(`/api/work-items/${id}`);
       const normalized = normalizeWorkItem(item);
-      return normalized.deleted ? null : normalized;
+      return options?.includeDeleted ? normalized : (normalized.deleted ? null : normalized);
     } catch (error) {
       if (error instanceof Error && error.message.includes("API 404")) {
         return null;
@@ -172,6 +172,15 @@ export const workItemsApiService = {
     await apiFetch<void>(`/api/work-items/${id}`, {
       method: "DELETE"
     });
+  },
+
+
+  async restoreWorkItem(id: string): Promise<WorkItem> {
+    const restored = await apiFetch<BackendWorkItem>(`/api/work-items/${id}/restore`, {
+      method: "POST"
+    });
+
+    return normalizeWorkItem(restored);
   },
 
   async resetDemoData(): Promise<void> {

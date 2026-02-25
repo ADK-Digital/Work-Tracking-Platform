@@ -56,7 +56,7 @@ export type WorkItem = PurchaseRequestItem | TaskProjectItem;
 export type StatusFilter = "all" | "open" | "closed" | string;
 export type SortOption = "created_desc" | "created_asc" | "status_priority";
 
-export type ActivityEventType = "created" | "updated" | "status_changed" | "owner_changed" | "deleted";
+export type ActivityEventType = "created" | "updated" | "status_changed" | "owner_changed" | "deleted" | "restored";
 
 export interface ActivityEvent {
   id: string;

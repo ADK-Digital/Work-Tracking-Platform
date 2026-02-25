@@ -134,7 +134,10 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `POST /api/work-items` (**admin only**)
 - `PATCH /api/work-items/:id` (**admin only**)
 - `DELETE /api/work-items/:id` (soft delete, **admin only**)
+- `POST /api/work-items/:id/restore` (**admin only**)
 - `GET /api/work-items/:id/activity`
+- `GET /api/export/work-items?type=task|purchase_request&includeDeleted=true|false` (**admin only**)
+- `GET /api/export/activity?workItemId=:id` (**admin only**)
 
 > In API mode, all `/api/*` endpoints except `/api/health` and `/api/ready` require an authenticated Google Workspace session.
 
@@ -182,6 +185,42 @@ These endpoints are intentionally unauthenticated for monitoring:
 
 - `GET /api/health`
 - `GET /api/ready`
+
+
+## Backups
+
+Database backup/restore scripts for the production Docker Compose stack are in `ops/` and target `docker-compose.prod.yml`.
+
+### Create a backup
+
+```bash
+./ops/backup-db.sh
+```
+
+```powershell
+./ops/backup-db.ps1
+```
+
+Backups are written to `./backups` with timestamped filenames by default.
+
+### Restore from backup
+
+```bash
+./ops/restore-db.sh ./backups/postgres-backup-YYYYMMDD-HHMMSS.dump
+```
+
+```powershell
+./ops/restore-db.ps1 -InputFile ./backups/postgres-backup-YYYYMMDD-HHMMSS.dump
+```
+
+> ⚠️ Warning: restore overwrites existing database data.
+
+### Scheduling recommendation
+
+Run backup script nightly using:
+
+- `cron` on Linux/macOS
+- Windows Task Scheduler on Windows
 
 ## Production rollout acceptance checks
 

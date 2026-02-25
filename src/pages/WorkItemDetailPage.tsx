@@ -8,8 +8,7 @@ import { Modal } from "../components/ui/Modal";
 import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
 import { type AuthUser, loadAuthUser } from "../services/authService";
-import { workItemsService } from "../services/workItemsService";
-import { API_FORBIDDEN_EVENT, isApiModeEnabled } from "../services/workItemsService";
+import { API_FORBIDDEN_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
 import {
   PURCHASE_REQUEST_STATUSES,
   TASK_PROJECT_STATUSES,
@@ -44,6 +43,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
+  const canViewDeleted = isApiModeEnabled && authUser?.role === "admin";
 
   const statusOptions = useMemo(
     () =>
@@ -64,7 +64,10 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     setLoading(true);
     try {
-      const [found, events] = await Promise.all([workItemsService.getWorkItemById(id), workItemsService.listActivity(id)]);
+      const [found, events] = await Promise.all([
+        workItemsService.getWorkItemById(id, { includeDeleted: canViewDeleted }),
+        workItemsService.listActivity(id)
+      ]);
       setItem(found);
       setActivity(events);
     } catch {
@@ -77,7 +80,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
   useEffect(() => {
     void loadItemAndActivity();
-  }, [id]);
+  }, [id, canViewDeleted]);
 
   useEffect(() => {
     const loadMe = async () => {
@@ -142,6 +145,14 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     await loadItemAndActivity();
   };
 
+  const handleRestore = async () => {
+    if (!item) return;
+
+    await workItemsService.restoreWorkItem(item.id);
+    notify("Restored");
+    await loadItemAndActivity();
+  };
+
   return (
     <AppShell onReset={onReset} resetting={resetting}>
       {isApiModeEnabled && forbiddenWarning ? (
@@ -175,7 +186,10 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
                 </p>
                 <h2 className="text-2xl font-semibold text-slate-900">{item.title}</h2>
               </div>
-              <Badge status={item.status} />
+              <div className="flex items-center gap-2">
+                {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
+                <Badge status={item.status} />
+              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -218,10 +232,15 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
               ) : null}
             </div>
 
-            <div className="mt-6">
-              <Button variant="secondary" onClick={openEdit} disabled={!canManage}>
+            <div className="mt-6 flex items-center gap-2">
+              <Button variant="secondary" onClick={openEdit} disabled={!canManage || item.deleted}>
                 Edit
               </Button>
+              {item.deleted && canManage ? (
+                <Button variant="secondary" onClick={() => void handleRestore()}>
+                  Restore
+                </Button>
+              ) : null}
             </div>
           </div>
 

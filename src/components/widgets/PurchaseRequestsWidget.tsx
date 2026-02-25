@@ -44,7 +44,17 @@ const defaultForm: FormState = {
 
 const owners = ["Alex Kim", "Morgan Lee", "Chris Nguyen", "Taylor Gray"];
 
-export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal: number; canManage: boolean }) => {
+export const PurchaseRequestsWidget = ({
+  resetSignal,
+  canManage,
+  includeDeleted = false,
+  canRestore = false
+}: {
+  resetSignal: number;
+  canManage: boolean;
+  includeDeleted?: boolean;
+  canRestore?: boolean;
+}) => {
   const [items, setItems] = useState<PurchaseRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
@@ -61,7 +71,8 @@ export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal
       const data = await workItemsService.getWorkItems({
         type: "purchase_request",
         statusFilter: filter,
-        sort
+        sort,
+        includeDeleted
       });
       setItems(data as PurchaseRequestItem[]);
     } catch {
@@ -73,7 +84,7 @@ export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal
 
   useEffect(() => {
     void loadItems();
-  }, [filter, sort, resetSignal]);
+  }, [filter, sort, resetSignal, includeDeleted]);
 
   const filterOptions = useMemo(
     () => [
@@ -164,6 +175,13 @@ export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal
     await loadItems();
   };
 
+
+  const handleRestore = async (id: string) => {
+    await workItemsService.restoreWorkItem(id);
+    notify("Restored");
+    await loadItems();
+  };
+
   return (
     <>
       <WidgetCard
@@ -212,7 +230,10 @@ export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal
                       {item.vendor} • ${item.amount.toLocaleString()} • Created {formatDate(item.createdAt)}
                     </p>
                   </div>
-                  <Badge status={item.status} />
+                  <div className="flex items-center gap-2">
+                    {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
+                    <Badge status={item.status} />
+                  </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-4">
                   <Select
@@ -230,9 +251,15 @@ export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal
                   <Button variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
                     Edit
                   </Button>
-                  <Button variant="danger" onClick={() => void handleDelete(item.id)} disabled={!canManage}>
-                    Delete
-                  </Button>
+                  {item.deleted && canRestore ? (
+                    <Button variant="secondary" onClick={() => void handleRestore(item.id)}>
+                      Restore
+                    </Button>
+                  ) : (
+                    <Button variant="danger" onClick={() => void handleDelete(item.id)} disabled={!canManage}>
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

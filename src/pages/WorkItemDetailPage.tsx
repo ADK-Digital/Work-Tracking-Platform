@@ -11,11 +11,12 @@ import { workItemsService } from "../services/workItemsService";
 import {
   PURCHASE_REQUEST_STATUSES,
   TASK_PROJECT_STATUSES,
+  type ActivityEvent,
   type PurchaseRequestItem,
   type TaskProjectItem,
   type WorkItem
 } from "../types/workItem";
-import { formatDate } from "../utils/dates";
+import { formatDate, formatDateTime } from "../utils/dates";
 
 interface WorkItemDetailPageProps {
   onReset: () => void;
@@ -33,6 +34,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<WorkItem | null>(null);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", owner: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
@@ -47,21 +49,23 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     [item?.type]
   );
 
-  const loadItem = async () => {
+  const loadItemAndActivity = async () => {
     if (!id) {
       setItem(null);
+      setActivity([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const found = await workItemsService.getWorkItemById(id);
+    const [found, events] = await Promise.all([workItemsService.getWorkItemById(id), workItemsService.listActivity(id)]);
     setItem(found);
+    setActivity(events);
     setLoading(false);
   };
 
   useEffect(() => {
-    void loadItem();
+    void loadItemAndActivity();
   }, [id]);
 
   const openEdit = () => {
@@ -96,7 +100,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     notify("Updated");
     setEditOpen(false);
-    await loadItem();
+    await loadItemAndActivity();
   };
 
   return (
@@ -177,6 +181,22 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
                 Edit
               </Button>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+            <h3 className="text-base font-semibold text-slate-900">Activity Log</h3>
+            {activity.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">No activity yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {activity.map((event) => (
+                  <li key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-sm text-slate-800">{event.message}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(event.timestamp)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </>
       )}

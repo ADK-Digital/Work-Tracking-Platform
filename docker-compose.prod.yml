@@ -24,6 +24,24 @@ services:
       - "9000"
       - "9001"
 
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    env_file:
+      - ./server/.env.prod
+    depends_on:
+      minio:
+        condition: service_started
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"; do
+          echo "Waiting for MinIO..."
+          sleep 1
+        done
+        mc mb --ignore-existing "local/$S3_BUCKET"
+
   backend:
     build:
       context: ./server
@@ -34,8 +52,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio:
-        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    command: ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
     expose:
       - "3001"
 

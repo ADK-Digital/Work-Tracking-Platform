@@ -4,6 +4,7 @@ import { ApiError } from "./http";
 
 export const API_ERROR_EVENT = "work-items-api-error";
 export const API_UNAUTHORIZED_EVENT = "work-items-api-unauthorized";
+export const API_FORBIDDEN_EVENT = "work-items-api-forbidden";
 
 const useApi = import.meta.env.VITE_USE_API === "true";
 const baseService = useApi ? workItemsApiService : workItemsLocalService;
@@ -12,6 +13,12 @@ const reportApiError = (error: unknown): never => {
   if (error instanceof ApiError && error.status === 401) {
     const message = "Please sign in to continue";
     window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT, { detail: message }));
+    throw error;
+  }
+
+  if (error instanceof ApiError && error.status === 403) {
+    const message = "You do not have permission to perform this action.";
+    window.dispatchEvent(new CustomEvent(API_FORBIDDEN_EVENT, { detail: message }));
     throw error;
   }
 

@@ -19,7 +19,8 @@
     "express-session": "^1.18.1",
     "passport": "^0.7.0",
     "passport-google-oidc": "^0.1.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "googleapis": "^144.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

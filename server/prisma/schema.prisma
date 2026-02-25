@@ -27,6 +27,8 @@ model WorkItem {
   description String?
   status      String
   owner       String?
+  createdBy   String?
+  updatedBy   String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   deletedAt   DateTime?

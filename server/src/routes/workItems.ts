@@ -18,6 +18,8 @@ const serializeWorkItem = (workItem: {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  createdBy: string | null;
+  updatedBy: string | null;
 }) => workItem;
 
 workItemsRouter.get('/work-items', async (req, res) => {
@@ -52,6 +54,7 @@ workItemsRouter.get('/work-items/:id', async (req, res) => {
 });
 
 workItemsRouter.post('/work-items', async (req, res) => {
+  const actor = req.user!.email;
   const { type, title, description, status, owner } = req.body as {
     type?: string;
     title?: string;
@@ -79,10 +82,13 @@ workItemsRouter.post('/work-items', async (req, res) => {
       description: description ?? null,
       status: status.trim(),
       owner: owner ?? null,
+      createdBy: actor,
+      updatedBy: actor,
       activityEvents: {
         create: {
           type: ActivityEventType.created,
           message: 'Work item created',
+          actor,
         },
       },
     },
@@ -92,6 +98,7 @@ workItemsRouter.post('/work-items', async (req, res) => {
 });
 
 workItemsRouter.patch('/work-items/:id', async (req, res) => {
+  const actor = req.user!.email;
   const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
 
   if (!existing) {
@@ -126,6 +133,10 @@ workItemsRouter.patch('/work-items/:id', async (req, res) => {
     ...(owner !== undefined ? { owner } : {}),
   };
 
+  if (Object.keys(data).length > 0) {
+    data.updatedBy = actor;
+  }
+
   const events: { type: ActivityEventType; message: string }[] = [];
 
   if (status !== undefined && status.trim() !== existing.status) {
@@ -158,6 +169,7 @@ workItemsRouter.patch('/work-items/:id', async (req, res) => {
           workItemId: req.params.id,
           type: event.type,
           message: event.message,
+          actor,
         })),
       });
     }
@@ -169,6 +181,7 @@ workItemsRouter.patch('/work-items/:id', async (req, res) => {
 });
 
 workItemsRouter.delete('/work-items/:id', async (req, res) => {
+  const actor = req.user!.email;
   const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
 
   if (!existing) {
@@ -182,7 +195,7 @@ workItemsRouter.delete('/work-items/:id', async (req, res) => {
   await prisma.$transaction(async (tx) => {
     await tx.workItem.update({
       where: { id: req.params.id },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), updatedBy: actor },
     });
 
     await tx.activityEvent.create({
@@ -190,6 +203,7 @@ workItemsRouter.delete('/work-items/:id', async (req, res) => {
         workItemId: req.params.id,
         type: ActivityEventType.deleted,
         message: 'Work item deleted',
+        actor,
       },
     });
   });

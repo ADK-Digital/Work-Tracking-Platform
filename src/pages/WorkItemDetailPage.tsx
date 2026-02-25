@@ -198,7 +198,9 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
                 {activity.map((event) => (
                   <li key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <p className="text-sm text-slate-800">{event.message}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(event.timestamp)}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formatDateTime(event.timestamp)}{event.actor ? ` · ${event.actor}` : ""}
+                    </p>
                   </li>
                 ))}
               </ul>

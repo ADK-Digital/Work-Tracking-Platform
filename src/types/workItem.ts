@@ -63,6 +63,7 @@ export interface ActivityEvent {
   workItemId: string;
   type: ActivityEventType;
   message: string;
+  actor?: string | null;
   timestamp: string;
 }
 

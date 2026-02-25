@@ -1,5 +1,5 @@
 import { seedWorkItems } from "../data/seedData";
-import type { ActivityEvent, Comment, CreateWorkItemInput, SortOption, StatusFilter, WorkItem } from "../types/workItem";
+import type { ActivityEvent, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -83,6 +83,15 @@ const readComments = (): Comment[] => {
 const writeComments = (comments: Comment[]): void => {
   localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
 };
+
+
+const includesInsensitive = (value: string | null | undefined, q: string): boolean =>
+  Boolean(value && value.toLowerCase().includes(q));
+
+const isUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const isDateOnly = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem[] => {
   if (!statusFilter || statusFilter === "all") {
@@ -313,6 +322,111 @@ export const workItemsLocalService = {
       });
 
       return updated;
+    });
+  },
+
+  async searchWorkItems(query: string, filters: SearchFilters = {}): Promise<SearchResult[]> {
+    return withLatency(() => {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        return [];
+      }
+
+      const limit = filters.limit ?? 50;
+      const items = readItems().filter((item) => {
+        if (!filters.includeDeleted && item.deleted) {
+          return false;
+        }
+
+        if (filters.type && item.type !== filters.type) {
+          return false;
+        }
+
+        if (filters.status && item.status !== filters.status) {
+          return false;
+        }
+
+        if (filters.owner && item.owner !== filters.owner) {
+          return false;
+        }
+
+        return true;
+      });
+
+      const uuidQuery = isUuid(q) ? q : null;
+      const dateQuery = isDateOnly(q) ? q : null;
+
+      const results: Array<SearchResult & { sortAt: number }> = [];
+
+      for (const item of items) {
+        const matchedFields: string[] = [];
+        if (includesInsensitive(item.title, q)) matchedFields.push("title");
+        if (includesInsensitive(item.description, q)) matchedFields.push("description");
+        if (includesInsensitive(item.status, q)) matchedFields.push("status");
+        if (includesInsensitive(item.owner, q)) matchedFields.push("owner");
+        if (includesInsensitive(item.type, q)) matchedFields.push("type");
+        if (uuidQuery && item.id.toLowerCase() === uuidQuery) matchedFields.push("id");
+        if (dateQuery && item.createdAt.slice(0, 10) === dateQuery) matchedFields.push("createdAt");
+
+        if (matchedFields.length > 0) {
+          results.push({
+            kind: "workItem",
+            workItem: item,
+            matchedFields,
+            snippet: `${item.title}${item.description ? ` — ${item.description}` : ""}`,
+            sortAt: new Date(item.createdAt).getTime(),
+          });
+        }
+      }
+
+      const validIds = new Set(items.map((item) => item.id));
+
+      for (const comment of readComments()) {
+        if (!validIds.has(comment.workItemId) || comment.deletedAt) {
+          continue;
+        }
+
+        const matchedFields: string[] = [];
+        if (includesInsensitive(comment.body, q)) matchedFields.push("body");
+        if (includesInsensitive(comment.authorEmail, q)) matchedFields.push("authorEmail");
+
+        if (matchedFields.length > 0) {
+          results.push({
+            kind: "comment",
+            workItemId: comment.workItemId,
+            comment,
+            matchedFields,
+            snippet: comment.body,
+            sortAt: new Date(comment.createdAt).getTime(),
+          });
+        }
+      }
+
+      for (const event of readActivityEvents()) {
+        if (!validIds.has(event.workItemId)) {
+          continue;
+        }
+
+        const matchedFields: string[] = [];
+        if (includesInsensitive(event.message, q)) matchedFields.push("message");
+        if (includesInsensitive(event.actor, q)) matchedFields.push("actor");
+
+        if (matchedFields.length > 0) {
+          results.push({
+            kind: "activity",
+            workItemId: event.workItemId,
+            activity: event,
+            matchedFields,
+            snippet: event.message,
+            sortAt: new Date(event.timestamp).getTime(),
+          });
+        }
+      }
+
+      return results
+        .sort((a, b) => b.sortAt - a.sortAt)
+        .slice(0, limit)
+        .map(({ sortAt: _sortAt, ...result }) => result);
     });
   },
 

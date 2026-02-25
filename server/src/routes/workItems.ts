@@ -11,6 +11,43 @@ const MAX_COMMENT_LENGTH = 5000;
 
 const parseIncludeDeleted = (value: unknown): boolean => value === 'true';
 
+
+const parseLimit = (value: unknown): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 50;
+  }
+
+  return Math.min(200, Math.floor(parsed));
+};
+
+const isUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const isDateOnly = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+const snippetFromText = (text: string, query: string): string | undefined => {
+  if (!text) {
+    return undefined;
+  }
+
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return text.slice(0, 160);
+  }
+
+  const index = text.toLowerCase().indexOf(normalized);
+  if (index < 0) {
+    return text.slice(0, 160);
+  }
+
+  const start = Math.max(0, index - 40);
+  const end = Math.min(text.length, index + normalized.length + 80);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < text.length ? '…' : '';
+  return `${prefix}${text.slice(start, end)}${suffix}`;
+};
+
 const serializeWorkItem = (workItem: {
   id: string;
   type: WorkItemType;
@@ -61,6 +98,182 @@ workItemsRouter.get('/work-items', async (req, res) => {
   });
 
   return res.json(items.map(serializeWorkItem));
+});
+
+
+workItemsRouter.get('/search', async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const type = typeof req.query.type === 'string' ? req.query.type : undefined;
+  const status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
+  const owner = typeof req.query.owner === 'string' ? req.query.owner.trim() : undefined;
+  const includeDeletedRequested = parseIncludeDeleted(req.query.includeDeleted);
+  const includeDeleted = includeDeletedRequested && req.authz?.role === 'admin';
+  const limit = parseLimit(req.query.limit);
+
+  if (includeDeletedRequested && req.authz?.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins may include deleted items.' });
+  }
+
+  if (type && !allowedTypes.has(type)) {
+    return res.status(400).json({ error: 'Invalid type query parameter.' });
+  }
+
+  const normalizedQ = q.toLowerCase();
+  const hasQuery = normalizedQ.length > 0;
+  const uuidQuery = hasQuery && isUuid(normalizedQ) ? normalizedQ : null;
+  const dateQuery = hasQuery && isDateOnly(normalizedQ) ? normalizedQ : null;
+
+  const workItemQueryClauses: Prisma.WorkItemWhereInput[] = [];
+  if (hasQuery) {
+    workItemQueryClauses.push(
+      { title: { contains: q, mode: 'insensitive' } },
+      { description: { contains: q, mode: 'insensitive' } },
+      { status: { contains: q, mode: 'insensitive' } },
+      { owner: { contains: q, mode: 'insensitive' } },
+      { createdBy: { contains: q, mode: 'insensitive' } },
+      { updatedBy: { contains: q, mode: 'insensitive' } },
+    );
+
+    if (q.toLowerCase() === 'task' || q.toLowerCase() === 'purchase_request') {
+      workItemQueryClauses.push({ type: q.toLowerCase() as WorkItemType });
+    }
+
+    if (uuidQuery) {
+      workItemQueryClauses.push({ id: uuidQuery });
+    }
+
+    if (dateQuery) {
+      const start = new Date(`${dateQuery}T00:00:00.000Z`);
+      const end = new Date(`${dateQuery}T23:59:59.999Z`);
+      workItemQueryClauses.push({ createdAt: { gte: start, lte: end } });
+    }
+  }
+
+  const workItemWhere: Prisma.WorkItemWhereInput = {
+    ...(type ? { type: type as WorkItemType } : {}),
+    ...(status ? { status } : {}),
+    ...(owner ? { owner } : {}),
+    ...(includeDeleted ? {} : { deletedAt: null }),
+    ...(hasQuery ? { OR: workItemQueryClauses } : {}),
+  };
+
+  const workItems = await prisma.workItem.findMany({
+    where: workItemWhere,
+    orderBy: { updatedAt: 'desc' },
+    take: limit,
+  });
+
+  const workItemIds = workItems.map((item) => item.id);
+
+  const comments = hasQuery
+    ? await prisma.comment.findMany({
+        where: {
+          ...(includeDeleted ? {} : { deletedAt: null }),
+          workItem: {
+            ...(type ? { type: type as WorkItemType } : {}),
+            ...(status ? { status } : {}),
+            ...(owner ? { owner } : {}),
+            ...(includeDeleted ? {} : { deletedAt: null }),
+          },
+          OR: [
+            { body: { contains: q, mode: 'insensitive' } },
+            { authorEmail: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { workItem: { select: { id: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+    : [];
+
+  const activities = hasQuery
+    ? await prisma.activityEvent.findMany({
+        where: {
+          workItem: {
+            ...(type ? { type: type as WorkItemType } : {}),
+            ...(status ? { status } : {}),
+            ...(owner ? { owner } : {}),
+            ...(includeDeleted ? {} : { deletedAt: null }),
+          },
+          OR: [
+            { message: { contains: q, mode: 'insensitive' } },
+            { actor: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      })
+    : [];
+
+  const workItemResults = workItems.map((item) => {
+    const matchedFields: string[] = [];
+    if (!hasQuery || item.title.toLowerCase().includes(normalizedQ)) matchedFields.push('title');
+    if (item.description?.toLowerCase().includes(normalizedQ)) matchedFields.push('description');
+    if (item.status.toLowerCase().includes(normalizedQ)) matchedFields.push('status');
+    if (item.owner?.toLowerCase().includes(normalizedQ)) matchedFields.push('owner');
+    if (item.createdBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('createdBy');
+    if (item.updatedBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('updatedBy');
+    if (item.type.toLowerCase().includes(normalizedQ)) matchedFields.push('type');
+    if (uuidQuery && item.id === uuidQuery) matchedFields.push('id');
+    if (dateQuery) {
+      const day = item.createdAt.toISOString().slice(0, 10);
+      if (day === dateQuery) matchedFields.push('createdAt');
+    }
+
+    return {
+      kind: 'workItem' as const,
+      workItem: serializeWorkItem(item),
+      matchedFields: matchedFields.length > 0 ? matchedFields : ['title'],
+      snippet: snippetFromText(`${item.title} ${item.description ?? ''}`.trim(), q),
+      sortAt: item.updatedAt.getTime(),
+    };
+  });
+
+  const commentResults = comments.map((comment) => {
+    const matchedFields: string[] = [];
+    if (comment.body.toLowerCase().includes(normalizedQ)) matchedFields.push('body');
+    if (comment.authorEmail.toLowerCase().includes(normalizedQ)) matchedFields.push('authorEmail');
+
+    return {
+      kind: 'comment' as const,
+      workItemId: comment.workItemId,
+      comment: serializeComment(comment),
+      matchedFields,
+      snippet: snippetFromText(comment.body, q),
+      sortAt: comment.createdAt.getTime(),
+    };
+  });
+
+  const activityResults = activities.map((event) => {
+    const matchedFields: string[] = [];
+    if (event.message.toLowerCase().includes(normalizedQ)) matchedFields.push('message');
+    if (event.actor?.toLowerCase().includes(normalizedQ)) matchedFields.push('actor');
+
+    return {
+      kind: 'activity' as const,
+      workItemId: event.workItemId,
+      activity: event,
+      matchedFields,
+      snippet: snippetFromText(event.message, q),
+      sortAt: event.timestamp.getTime(),
+    };
+  });
+
+  const results = [...workItemResults, ...commentResults, ...activityResults]
+    .sort((a, b) => b.sortAt - a.sortAt)
+    .slice(0, limit)
+    .map(({ sortAt: _sortAt, ...result }) => result);
+
+  return res.json({
+    results,
+    meta: {
+      includeDeleted,
+      attachmentsMatched: 0,
+      attachmentSearchImplemented: false,
+      note: 'Attachment search is stubbed until attachments are persisted in the database.',
+      workItemIds,
+    },
+  });
 });
 
 workItemsRouter.get('/work-items/:id', async (req, res) => {

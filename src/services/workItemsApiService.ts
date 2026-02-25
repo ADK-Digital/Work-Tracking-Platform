@@ -7,7 +7,9 @@ import type {
   SortOption,
   StatusFilter,
   TaskProjectStatus,
-  WorkItem
+  WorkItem,
+  SearchFilters,
+  SearchResult
 } from "../types/workItem";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -61,6 +63,29 @@ const normalizeComment = (comment: BackendComment): Comment => ({
   createdAt: new Date(comment.createdAt).toISOString(),
   deletedAt: comment.deletedAt ? new Date(comment.deletedAt).toISOString() : null,
 });
+
+
+type BackendSearchResult =
+  | {
+      kind: "workItem";
+      workItem: BackendWorkItem;
+      matchedFields: string[];
+      snippet?: string;
+    }
+  | {
+      kind: "comment";
+      workItemId: string;
+      comment: BackendComment;
+      matchedFields: string[];
+      snippet?: string;
+    }
+  | {
+      kind: "activity";
+      workItemId: string;
+      activity: ActivityEvent;
+      matchedFields: string[];
+      snippet?: string;
+    };
 
 const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
   if (item.type === "purchase_request") {
@@ -220,6 +245,57 @@ export const workItemsApiService = {
     });
 
     return normalizeWorkItem(restored);
+  },
+
+  async searchWorkItems(query: string, filters: SearchFilters = {}): Promise<SearchResult[]> {
+    if (!query.trim()) {
+      return [];
+    }
+
+    const apiType = filters.type ? (filters.type === "task_project" ? "task" : filters.type) : undefined;
+
+    const response = await apiFetch<{ results: BackendSearchResult[] }>("/api/search", {
+      query: {
+        q: query.trim(),
+        type: apiType,
+        status: filters.status,
+        owner: filters.owner,
+        includeDeleted: filters.includeDeleted,
+        limit: filters.limit ?? 50,
+      },
+    });
+
+    return response.results.map((result) => {
+      if (result.kind === "workItem") {
+        return {
+          kind: "workItem",
+          workItem: normalizeWorkItem(result.workItem),
+          matchedFields: result.matchedFields,
+          snippet: result.snippet,
+        };
+      }
+
+      if (result.kind === "comment") {
+        return {
+          kind: "comment",
+          workItemId: result.workItemId,
+          comment: normalizeComment(result.comment),
+          matchedFields: result.matchedFields,
+          snippet: result.snippet,
+        };
+      }
+
+      return {
+        kind: "activity",
+        workItemId: result.workItemId,
+        activity: {
+          ...result.activity,
+          timestamp: new Date(result.activity.timestamp).toISOString(),
+        },
+        matchedFields: result.matchedFields,
+        snippet: result.snippet,
+      };
+    });
   },
 
   async resetDemoData(): Promise<void> {

@@ -8,6 +8,7 @@ import { parseAllowedDomains, requireAuth, setupAuth } from './auth';
 import { getUserRole, requireAllowedUser } from './authorization';
 import { prisma } from './db';
 import healthRouter from './routes/health';
+import attachmentsRouter from './routes/attachments';
 import workItemsRouter from './routes/workItems';
 
 dotenv.config();
@@ -86,6 +87,7 @@ app.get('/api/me', async (req, res, next) => {
   }
 });
 app.use('/api', workItemsRouter);
+app.use('/api', attachmentsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

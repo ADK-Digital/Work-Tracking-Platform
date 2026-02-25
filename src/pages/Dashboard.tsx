@@ -219,13 +219,22 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
             <ul className="space-y-3">
               {results.map((result, index) => {
                 const workItemId = result.kind === "workItem" ? result.workItem.id : result.workItemId;
-                const label = result.kind === "workItem" ? "Work Item" : result.kind === "comment" ? "Comment" : "Activity";
+                const label =
+                  result.kind === "workItem"
+                    ? "Work Item"
+                    : result.kind === "comment"
+                      ? "Comment"
+                      : result.kind === "activity"
+                        ? "Activity"
+                        : "Attachment";
                 const title =
                   result.kind === "workItem"
                     ? result.workItem.title
                     : result.kind === "comment"
                       ? result.comment.body
-                      : result.activity.message;
+                      : result.kind === "activity"
+                        ? result.activity.message
+                        : result.attachment.filename;
 
                 return (
                   <li key={`${result.kind}-${workItemId}-${index}`} className="rounded-md border border-slate-200 p-3">

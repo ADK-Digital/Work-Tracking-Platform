@@ -79,6 +79,20 @@ export interface Comment {
   deletedBy?: string | null;
 }
 
+
+
+export interface Attachment {
+  id: string;
+  workItemId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+}
+
 export interface SearchFilters {
   type?: WorkItemType;
   status?: string;
@@ -110,6 +124,16 @@ export interface ActivitySearchResult {
   snippet?: string;
 }
 
-export type SearchResult = WorkItemSearchResult | CommentSearchResult | ActivitySearchResult;
+
+
+export interface AttachmentSearchResult {
+  kind: "attachment";
+  workItemId: string;
+  attachment: Attachment;
+  matchedFields: string[];
+  snippet?: string;
+}
+
+export type SearchResult = WorkItemSearchResult | CommentSearchResult | ActivitySearchResult | AttachmentSearchResult;
 
 export type CreateWorkItemInput = Omit<PurchaseRequestItem, "id" | "createdAt" | "deleted"> | Omit<TaskProjectItem, "id" | "createdAt" | "deleted">;

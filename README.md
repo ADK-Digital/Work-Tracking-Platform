@@ -141,15 +141,24 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `GET /api/work-items/:id/comments`
 - `POST /api/work-items/:id/comments`
 - `DELETE /api/comments/:commentId` (**admin only**, soft delete)
+- `GET /api/work-items/:id/attachments`
+- `POST /api/work-items/:id/attachments` (multipart form field `file`, allowed authenticated users)
+- `GET /api/attachments/:attachmentId/download`
+- `DELETE /api/attachments/:attachmentId` (**admin only**, soft delete)
 - `GET /api/search?q=:query&type=task|purchase_request&status=:status&owner=:owner&includeDeleted=true|false&limit=50`
   - searches across work item fields (`title`, `description`, `status`, `owner`, `createdBy`, `updatedBy`, `type`), comments (`body`, `authorEmail`), and activity (`message`, `actor`)
   - also supports UUID-style `q` (exact work item id) and `YYYY-MM-DD` `q` (matches work item `createdAt` date)
   - `includeDeleted=true` is **admin-only**; non-admin requests are rejected with 403
-  - attachment filename search is currently stubbed (no attachment table yet); response includes metadata noting the stub
+  - includes attachment filename matches once attachments are enabled
 - `GET /api/export/work-items?type=task|purchase_request&includeDeleted=true|false` (**admin only**)
 - `GET /api/export/activity?workItemId=:id` (**admin only**)
 
 > In API mode, all `/api/*` endpoints except `/api/health` and `/api/ready` require an authenticated Google Workspace session.
+
+Attachment upload policy defaults:
+- Max file size: `25 MB` (`ATTACHMENT_MAX_SIZE_BYTES`)
+- Allowed MIME types are controlled by `ATTACHMENT_ALLOWED_TYPES`
+
 
 ## Internal deployment (Docker Compose + NGINX)
 
@@ -157,7 +166,7 @@ This repository includes production-style packaging for internal hosting:
 
 - `server/Dockerfile` for the Node/Express backend
 - `nginx/Dockerfile` + `nginx/nginx.conf` to build the Vite frontend and serve static assets via NGINX
-- `docker-compose.prod.yml` for `db`, `backend`, and `nginx`
+- `docker-compose.prod.yml` for `db`, `minio`, `backend`, and `nginx`
 
 ### 1) Prepare env files
 
@@ -167,6 +176,12 @@ cp .env.frontend.example .env.frontend
 ```
 
 Update values in `server/.env.prod` with real secrets and your hostnames.
+
+Set MinIO and S3-compatible attachment variables in `server/.env.prod`:
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
+- `S3_ENDPOINT=http://minio:9000`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_FORCE_PATH_STYLE=true`
+
+MinIO console is exposed internally on port `9001` within the compose network for optional internal access.
 
 ### 2) Build and run
 

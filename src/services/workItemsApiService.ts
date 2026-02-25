@@ -1,4 +1,4 @@
-import { apiFetch } from "./http";
+import { API_BASE_URL, apiFetch } from "./http";
 import type {
   ActivityEvent,
   Comment,
@@ -9,7 +9,8 @@ import type {
   TaskProjectStatus,
   WorkItem,
   SearchFilters,
-  SearchResult
+  SearchResult,
+  Attachment
 } from "../types/workItem";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -65,6 +66,25 @@ const normalizeComment = (comment: BackendComment): Comment => ({
 });
 
 
+type BackendAttachment = {
+  id: string;
+  workItemId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+};
+
+const normalizeAttachment = (attachment: BackendAttachment): Attachment => ({
+  ...attachment,
+  uploadedAt: new Date(attachment.uploadedAt).toISOString(),
+  deletedAt: attachment.deletedAt ? new Date(attachment.deletedAt).toISOString() : null,
+});
+
+
 type BackendSearchResult =
   | {
       kind: "workItem";
@@ -83,6 +103,13 @@ type BackendSearchResult =
       kind: "activity";
       workItemId: string;
       activity: ActivityEvent;
+      matchedFields: string[];
+      snippet?: string;
+    }
+  | {
+      kind: "attachment";
+      workItemId: string;
+      attachment: BackendAttachment;
       matchedFields: string[];
       snippet?: string;
     };
@@ -178,6 +205,34 @@ export const workItemsApiService = {
     await apiFetch<void>(`/api/comments/${commentId}`, {
       method: "DELETE"
     });
+  },
+
+  async listAttachments(workItemId: string): Promise<Attachment[]> {
+    const attachments = await apiFetch<BackendAttachment[]>(`/api/work-items/${workItemId}/attachments`);
+    return attachments.map(normalizeAttachment);
+  },
+
+  async uploadAttachment(workItemId: string, file: File): Promise<Attachment> {
+    const form = new FormData();
+    form.append("file", file);
+
+    const attachment = await apiFetch<BackendAttachment>(`/api/work-items/${workItemId}/attachments`, {
+      method: "POST",
+      body: form,
+      headers: {}
+    });
+
+    return normalizeAttachment(attachment);
+  },
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    await apiFetch<void>(`/api/attachments/${attachmentId}`, {
+      method: "DELETE"
+    });
+  },
+
+  getAttachmentDownloadUrl(attachmentId: string): string {
+    return `${API_BASE_URL}/api/attachments/${attachmentId}/download`;
   },
 
   async addActivity(_event: Omit<ActivityEvent, "id" | "timestamp">): Promise<void> {
@@ -285,13 +340,23 @@ export const workItemsApiService = {
         };
       }
 
+      if (result.kind === "activity") {
+        return {
+          kind: "activity",
+          workItemId: result.workItemId,
+          activity: {
+            ...result.activity,
+            timestamp: new Date(result.activity.timestamp).toISOString(),
+          },
+          matchedFields: result.matchedFields,
+          snippet: result.snippet,
+        };
+      }
+
       return {
-        kind: "activity",
+        kind: "attachment",
         workItemId: result.workItemId,
-        activity: {
-          ...result.activity,
-          timestamp: new Date(result.activity.timestamp).toISOString(),
-        },
+        attachment: normalizeAttachment(result.attachment),
         matchedFields: result.matchedFields,
         snippet: result.snippet,
       };

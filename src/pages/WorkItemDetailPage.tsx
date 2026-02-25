@@ -14,6 +14,7 @@ import {
   TASK_PROJECT_STATUSES,
   type ActivityEvent,
   type Comment,
+  type Attachment,
   type PurchaseRequestItem,
   type TaskProjectItem,
   type WorkItem
@@ -40,6 +41,10 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
@@ -49,6 +54,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
   const canViewDeleted = isApiModeEnabled && authUser?.role === "admin";
   const canComment = !isApiModeEnabled || Boolean(authUser);
+  const canManageAttachments = !isApiModeEnabled ? false : Boolean(authUser);
   const isAdmin = !isApiModeEnabled || authUser?.role === "admin";
 
   const statusOptions = useMemo(
@@ -65,20 +71,24 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       setItem(null);
       setActivity([]);
       setComments([]);
+      setAttachments([]);
+      setAttachments([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const [found, events, nextComments] = await Promise.all([
+      const [found, events, nextComments, nextAttachments] = await Promise.all([
         workItemsService.getWorkItemById(id, { includeDeleted: canViewDeleted }),
         workItemsService.listActivity(id),
-        workItemsService.listComments(id)
+        workItemsService.listComments(id),
+        workItemsService.listAttachments(id)
       ]);
       setItem(found);
       setActivity(events);
       setComments(nextComments);
+      setAttachments(nextAttachments);
     } catch {
       setItem(null);
       setActivity([]);
@@ -143,6 +153,41 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       await loadItemActivityAndComments();
     } catch {
       setCommentError("Could not add comment. Please try again.");
+    }
+  };
+
+
+
+  const handleUploadAttachment = async () => {
+    if (!item || !attachmentFile || !isApiModeEnabled) {
+      return;
+    }
+
+    setAttachmentError(null);
+    setUploadingAttachment(true);
+    try {
+      await workItemsService.uploadAttachment(item.id, attachmentFile);
+      setAttachmentFile(null);
+      notify("Attachment uploaded");
+      await loadItemActivityAndComments();
+    } catch {
+      setAttachmentError("Could not upload attachment. Please check file size/type and try again.");
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!window.confirm("Delete this attachment?")) {
+      return;
+    }
+
+    try {
+      await workItemsService.deleteAttachment(attachmentId);
+      notify("Attachment deleted");
+      await loadItemActivityAndComments();
+    } catch {
+      setAttachmentError("Could not delete attachment. Please try again.");
     }
   };
 
@@ -363,6 +408,73 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
               </div>
             ) : null}
           </div>
+
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+            <h3 className="text-base font-semibold text-slate-900">Attachments</h3>
+            {!isApiModeEnabled ? (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Attachments require API mode.
+              </div>
+            ) : null}
+
+            {attachmentError ? (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{attachmentError}</div>
+            ) : null}
+
+            {attachments.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">No attachments yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {attachments.map((attachment) => (
+                  <li key={attachment.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <a
+                          className="text-sm font-medium text-slate-800 underline hover:text-slate-900"
+                          href={workItemsService.getAttachmentDownloadUrl(attachment.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {attachment.filename}
+                        </a>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {(attachment.sizeBytes / 1024).toFixed(1)} KB · {attachment.uploadedBy} · {formatDateTime(attachment.uploadedAt)}
+                        </p>
+                      </div>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteAttachment(attachment.id)}
+                          className="text-xs text-rose-700 underline hover:text-rose-800"
+                        >
+                          Delete
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {isApiModeEnabled && canManageAttachments ? (
+              <div className="mt-4">
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Upload attachment</span>
+                  <input
+                    type="file"
+                    className="block w-full text-sm"
+                    onChange={(e) => setAttachmentFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <div className="mt-2 flex justify-end">
+                  <Button onClick={() => void handleUploadAttachment()} disabled={!attachmentFile || uploadingAttachment}>
+                    {uploadingAttachment ? "Uploading..." : "Upload"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
         </>
       )}
 

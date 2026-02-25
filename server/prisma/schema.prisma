@@ -19,6 +19,8 @@ enum ActivityEventType {
   owner_changed
   deleted
   restored
+  attachment_added
+  attachment_deleted
 }
 
 model WorkItem {
@@ -36,11 +38,29 @@ model WorkItem {
 
   activityEvents ActivityEvent[]
   comments       Comment[]
+  attachments    Attachment[]
 
   @@index([updatedAt])
   @@index([type])
   @@index([status])
   @@index([owner])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  workItemId  String
+  filename    String
+  contentType String
+  sizeBytes   Int
+  storageKey  String   @unique
+  uploadedBy  String
+  uploadedAt  DateTime @default(now())
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId, uploadedAt])
 }
 
 model ActivityEvent {

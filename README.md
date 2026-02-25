@@ -189,7 +189,44 @@ MinIO console is exposed internally on port `9001` within the compose network fo
 docker compose --env-file .env.frontend -f docker-compose.prod.yml up -d --build
 ```
 
-### 3) OAuth callback URL for proxied deployment
+### 3) Verified production runbook (fresh DB + MinIO + backup/restore)
+
+Use this checklist exactly for zero-to-running validation with clean volumes:
+
+```bash
+# 0) one-time env setup
+cp server/.env.prod.example server/.env.prod
+cp .env.frontend.example .env.frontend
+
+# 1) reset to fresh state
+docker compose -f docker-compose.prod.yml down -v
+
+# 2) bring up full stack and build images
+docker compose --env-file .env.frontend -f docker-compose.prod.yml up -d --build
+
+# 3) verify public health and readiness through NGINX
+curl -fsS http://localhost/api/health
+curl -fsS http://localhost/api/ready
+
+# 4) verify backend startup applied migrations deterministically
+docker compose -f docker-compose.prod.yml logs backend --tail=200
+
+# 5) verify OAuth callback expectation (must match Google OAuth client redirect URI)
+# expected path: /auth/google/callback
+
+# 6) verify MinIO bucket exists and is reachable
+docker compose -f docker-compose.prod.yml exec -T minio sh -lc 'ls -la /data'
+
+# 7) create backup artifacts (postgres + minio)
+./ops/backup-db.sh
+
+# 8) restore from a selected backup directory into the running stack
+./ops/restore-db.sh ./backups/backup-YYYYMMDD-HHMMSS
+```
+
+The production backend startup command runs `prisma migrate deploy` before serving requests. This means fresh databases are migrated during container startup with no extra manual Prisma commands.
+
+### 4) OAuth callback URL for proxied deployment
 
 When using NGINX as the public entrypoint, your Google OAuth callback URL must match the proxied URL:
 
@@ -200,11 +237,11 @@ Also set:
 - `FRONTEND_URL=https://your-internal-host`
 - `GOOGLE_CALLBACK_URL=https://your-internal-host/auth/google/callback`
 
-### 4) Secure cookies and TLS
+### 5) Secure cookies and TLS
 
 Production sessions are configured for secure cookie behavior behind a proxy (`trust proxy` + secure cookies). For secure cookies to work correctly, terminate TLS at NGINX or at an upstream load balancer that forwards `X-Forwarded-Proto=https`.
 
-### 5) Public health/readiness
+### 6) Public health/readiness
 
 These endpoints are intentionally unauthenticated for monitoring:
 
@@ -226,19 +263,22 @@ Database backup/restore scripts for the production Docker Compose stack are in `
 ./ops/backup-db.ps1
 ```
 
-Backups are written to `./backups` with timestamped filenames by default.
+Backups are written to `./backups/backup-<timestamp>/` with:
+
+- `postgres.dump`
+- `minio-data.tar.gz`
 
 ### Restore from backup
 
 ```bash
-./ops/restore-db.sh ./backups/postgres-backup-YYYYMMDD-HHMMSS.dump
+./ops/restore-db.sh ./backups/backup-YYYYMMDD-HHMMSS
 ```
 
 ```powershell
-./ops/restore-db.ps1 -InputFile ./backups/postgres-backup-YYYYMMDD-HHMMSS.dump
+./ops/restore-db.ps1 -InputFile ./backups/backup-YYYYMMDD-HHMMSS
 ```
 
-> ⚠️ Warning: restore overwrites existing database data.
+> ⚠️ Warning: restore overwrites existing database data. When restoring from a backup directory, MinIO object data is also replaced.
 
 ### Scheduling recommendation
 

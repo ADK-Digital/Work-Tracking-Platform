@@ -1,3 +1,6 @@
 node_modules
 dist
 .env
+server/.env.prod
+.env.frontend
+backups/

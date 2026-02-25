@@ -7,7 +7,9 @@ import { Input } from "../components/ui/Input";
 import { Modal } from "../components/ui/Modal";
 import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
+import { type AuthUser, loadAuthUser } from "../services/authService";
 import { workItemsService } from "../services/workItemsService";
+import { API_FORBIDDEN_EVENT, isApiModeEnabled } from "../services/workItemsService";
 import {
   PURCHASE_REQUEST_STATUSES,
   TASK_PROJECT_STATUSES,
@@ -36,9 +38,12 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [item, setItem] = useState<WorkItem | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", owner: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
+  const canManage = !isApiModeEnabled || authUser?.role === "admin";
 
   const statusOptions = useMemo(
     () =>
@@ -73,6 +78,34 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   useEffect(() => {
     void loadItemAndActivity();
   }, [id]);
+
+  useEffect(() => {
+    const loadMe = async () => {
+      if (!isApiModeEnabled) {
+        return;
+      }
+
+      try {
+        const me = await loadAuthUser();
+        setAuthUser(me);
+      } catch {
+        setAuthUser(null);
+      }
+    };
+
+    void loadMe();
+
+    const handleForbidden = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      setForbiddenWarning(customEvent.detail);
+    };
+
+    window.addEventListener(API_FORBIDDEN_EVENT, handleForbidden);
+
+    return () => {
+      window.removeEventListener(API_FORBIDDEN_EVENT, handleForbidden);
+    };
+  }, []);
 
   const openEdit = () => {
     if (!item) return;
@@ -111,6 +144,9 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
   return (
     <AppShell onReset={onReset} resetting={resetting}>
+      {isApiModeEnabled && forbiddenWarning ? (
+        <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">{forbiddenWarning}</div>
+      ) : null}
       {loading ? (
         <div className="space-y-3">
           <div className="h-6 w-48 animate-pulse rounded bg-slate-100" />
@@ -183,7 +219,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             </div>
 
             <div className="mt-6">
-              <Button variant="secondary" onClick={openEdit}>
+              <Button variant="secondary" onClick={openEdit} disabled={!canManage}>
                 Edit
               </Button>
             </div>
@@ -227,6 +263,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             label="Status"
             value={form.status}
             options={statusOptions}
+            disabled={!canManage}
             onChange={(e) => setForm({ ...form, status: e.target.value as WorkItem["status"] })}
           />
           <label className="block text-sm md:col-span-2">
@@ -242,7 +279,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
           <Button variant="secondary" onClick={() => setEditOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={() => void submit()}>Save Changes</Button>
+          <Button onClick={() => void submit()} disabled={!canManage}>Save Changes</Button>
         </div>
       </Modal>
     </AppShell>

@@ -1,10 +1,6 @@
 import { Button } from "../ui/Button";
 import { API_BASE_URL } from "../../services/http";
-
-interface AuthUser {
-  email: string;
-  name: string;
-}
+import type { AuthUser } from "../../services/authService";
 
 interface HeaderProps {
   onReset: () => void;

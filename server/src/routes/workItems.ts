@@ -1,5 +1,6 @@
 import { ActivityEventType, Prisma, WorkItemType } from '@prisma/client';
 import { Router } from 'express';
+import { requireRole } from '../authorization';
 import { prisma } from '../db';
 
 const workItemsRouter = Router();
@@ -53,7 +54,7 @@ workItemsRouter.get('/work-items/:id', async (req, res) => {
   return res.json(serializeWorkItem(item));
 });
 
-workItemsRouter.post('/work-items', async (req, res) => {
+workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
   const { type, title, description, status, owner } = req.body as {
     type?: string;
@@ -97,7 +98,7 @@ workItemsRouter.post('/work-items', async (req, res) => {
   return res.status(201).json(serializeWorkItem(item));
 });
 
-workItemsRouter.patch('/work-items/:id', async (req, res) => {
+workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
   const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
 
@@ -180,7 +181,7 @@ workItemsRouter.patch('/work-items/:id', async (req, res) => {
   return res.json(serializeWorkItem(updated));
 });
 
-workItemsRouter.delete('/work-items/:id', async (req, res) => {
+workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
   const existing = await prisma.workItem.findUnique({ where: { id: req.params.id } });
 

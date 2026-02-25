@@ -44,7 +44,7 @@ const defaultForm: FormState = {
 
 const owners = ["Alex Kim", "Morgan Lee", "Chris Nguyen", "Taylor Gray"];
 
-export const PurchaseRequestsWidget = ({ resetSignal }: { resetSignal: number }) => {
+export const PurchaseRequestsWidget = ({ resetSignal, canManage }: { resetSignal: number; canManage: boolean }) => {
   const [items, setItems] = useState<PurchaseRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
@@ -187,7 +187,7 @@ export const PurchaseRequestsWidget = ({ resetSignal }: { resetSignal: number })
                 { label: "Status Priority", value: "status_priority" }
               ]}
             />
-            <Button onClick={openCreate}>Add New</Button>
+            <Button onClick={openCreate} disabled={!canManage}>Add New</Button>
           </div>
         }
       >
@@ -218,17 +218,19 @@ export const PurchaseRequestsWidget = ({ resetSignal }: { resetSignal: number })
                   <Select
                     options={PURCHASE_REQUEST_STATUSES.map((status) => ({ label: status, value: status }))}
                     value={item.status}
+                    disabled={!canManage}
                     onChange={(e) => void updateInline(item.id, { status: e.target.value as PurchaseRequestStatus })}
                   />
                   <Select
                     options={owners.map((owner) => ({ label: owner, value: owner }))}
                     value={item.owner}
+                    disabled={!canManage}
                     onChange={(e) => void updateInline(item.id, { owner: e.target.value })}
                   />
-                  <Button variant="secondary" onClick={() => openEdit(item)}>
+                  <Button variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
                     Edit
                   </Button>
-                  <Button variant="danger" onClick={() => void handleDelete(item.id)}>
+                  <Button variant="danger" onClick={() => void handleDelete(item.id)} disabled={!canManage}>
                     Delete
                   </Button>
                 </div>
@@ -265,7 +267,7 @@ export const PurchaseRequestsWidget = ({ resetSignal }: { resetSignal: number })
           <Button variant="secondary" onClick={() => setModalOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={() => void submit()}>{editing ? "Save Changes" : "Create"}</Button>
+          <Button onClick={() => void submit()} disabled={!canManage}>{editing ? "Save Changes" : "Create"}</Button>
         </div>
       </Modal>
     </>

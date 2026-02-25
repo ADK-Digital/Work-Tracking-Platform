@@ -4,6 +4,7 @@ import express from 'express';
 import passport from 'passport';
 import { Pool } from 'pg';
 import { requireAuth, setupAuth } from './auth';
+import { getUserRole, requireAllowedUser } from './authorization';
 import { prisma } from './db';
 import healthRouter from './routes/health';
 import workItemsRouter from './routes/workItems';
@@ -54,9 +55,15 @@ app.post('/auth/logout', (req, res, next) => {
 
 app.use('/api', healthRouter);
 app.use('/api', requireAuth);
-app.get('/api/me', (req, res) => {
-  const { email, name } = req.user!;
-  res.json({ email, name });
+app.use('/api', requireAllowedUser);
+app.get('/api/me', async (req, res, next) => {
+  try {
+    const { email, name } = req.user!;
+    const role = await getUserRole(req);
+    res.json({ email, name, role: role ?? 'user' });
+  } catch (error) {
+    next(error);
+  }
 });
 app.use('/api', workItemsRouter);
 

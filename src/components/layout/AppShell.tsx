@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
+import type { AuthUser } from "../../services/authService";
 
 interface AppShellProps {
   children: ReactNode;
   onReset: () => void;
   resetting: boolean;
   showAuthControls?: boolean;
-  authUser?: { email: string; name: string } | null;
+  authUser?: AuthUser | null;
   onSignOut?: () => Promise<void>;
 }
 

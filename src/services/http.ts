@@ -29,13 +29,18 @@ export const apiFetch = async <T>(
   options: RequestInit & { query?: Record<string, string | number | boolean | undefined> } = {}
 ): Promise<T> => {
   const { query, headers, ...fetchOptions } = options;
+  const computedHeaders: Record<string, string> = {
+    ...(headers as Record<string, string> | undefined)
+  };
+
+  if (!(fetchOptions.body instanceof FormData) && !computedHeaders["Content-Type"]) {
+    computedHeaders["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(buildUrl(path, query), {
     ...fetchOptions,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers
-    }
+    headers: computedHeaders
   });
 
   if (!response.ok) {

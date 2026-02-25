@@ -74,6 +74,42 @@ export const workItemsService = {
       throw error;
     }
   },
+  async listAttachments(...args: Parameters<typeof baseService.listAttachments>) {
+    try {
+      return await baseService.listAttachments(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  async uploadAttachment(...args: Parameters<typeof baseService.uploadAttachment>) {
+    try {
+      return await baseService.uploadAttachment(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  async deleteAttachment(...args: Parameters<typeof baseService.deleteAttachment>) {
+    try {
+      return await baseService.deleteAttachment(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  getAttachmentDownloadUrl(...args: Parameters<typeof baseService.getAttachmentDownloadUrl>) {
+    return baseService.getAttachmentDownloadUrl(...args);
+  },
   async softDeleteComment(...args: Parameters<typeof baseService.softDeleteComment>) {
     try {
       return await baseService.softDeleteComment(...args);

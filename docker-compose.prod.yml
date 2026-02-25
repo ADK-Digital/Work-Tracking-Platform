@@ -12,6 +12,18 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:RELEASE.2026-01-03T00-00-00Z
+    restart: unless-stopped
+    env_file:
+      - ./server/.env.prod
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+
   backend:
     build:
       context: ./server
@@ -22,6 +34,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
     expose:
       - "3001"
 
@@ -40,3 +54,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

@@ -203,7 +203,24 @@ workItemsRouter.get('/search', async (req, res) => {
         orderBy: { timestamp: 'desc' },
         take: limit,
       })
-    : [];
+    : []
+
+  const attachments = hasQuery
+    ? await prisma.attachment.findMany({
+        where: {
+          ...(includeDeleted ? {} : { deletedAt: null }),
+          filename: { contains: q, mode: 'insensitive' },
+          workItem: {
+            ...(type ? { type: type as WorkItemType } : {}),
+            ...(status ? { status } : {}),
+            ...(owner ? { owner } : {}),
+            ...(includeDeleted ? {} : { deletedAt: null }),
+          },
+        },
+        orderBy: { uploadedAt: 'desc' },
+        take: limit,
+      })
+    : [];;
 
   const workItemResults = workItems.map((item) => {
     const matchedFields: string[] = [];
@@ -259,7 +276,18 @@ workItemsRouter.get('/search', async (req, res) => {
     };
   });
 
-  const results = [...workItemResults, ...commentResults, ...activityResults]
+
+
+  const attachmentResults = attachments.map((attachment) => ({
+    kind: 'attachment' as const,
+    workItemId: attachment.workItemId,
+    attachment,
+    matchedFields: ['filename'],
+    snippet: snippetFromText(attachment.filename, q),
+    sortAt: attachment.uploadedAt.getTime(),
+  }));
+
+  const results = [...workItemResults, ...commentResults, ...activityResults, ...attachmentResults]
     .sort((a, b) => b.sortAt - a.sortAt)
     .slice(0, limit)
     .map(({ sortAt: _sortAt, ...result }) => result);
@@ -268,9 +296,7 @@ workItemsRouter.get('/search', async (req, res) => {
     results,
     meta: {
       includeDeleted,
-      attachmentsMatched: 0,
-      attachmentSearchImplemented: false,
-      note: 'Attachment search is stubbed until attachments are persisted in the database.',
+      attachmentsMatched: attachmentResults.length,
       workItemIds,
     },
   });

@@ -1,5 +1,5 @@
 import { seedWorkItems } from "../data/seedData";
-import type { ActivityEvent, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, WorkItem } from "../types/workItem";
+import type { ActivityEvent, Attachment, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -182,6 +182,26 @@ export const workItemsLocalService = {
 
       return created;
     });
+  },
+
+  async listAttachments(_workItemId: string): Promise<Attachment[]> {
+    return withLatency(() => []);
+  },
+
+  async uploadAttachment(): Promise<Attachment> {
+    return withLatency(() => {
+      throw new Error("Attachments require API mode");
+    });
+  },
+
+  async deleteAttachment(): Promise<void> {
+    return withLatency(() => {
+      throw new Error("Attachments require API mode");
+    });
+  },
+
+  getAttachmentDownloadUrl(_attachmentId: string): string {
+    return "";
   },
 
   async softDeleteComment(commentId: string): Promise<void> {

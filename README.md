@@ -126,6 +126,7 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `GET /auth/google/callback`
 - `POST /auth/logout`
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/me` (requires auth)
 - returns `{ email, name, role }`
 - `GET /api/work-items?type=task|purchase_request&includeDeleted=false`
@@ -135,4 +136,58 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `DELETE /api/work-items/:id` (soft delete, **admin only**)
 - `GET /api/work-items/:id/activity`
 
-> In API mode, all `/api/*` endpoints except `/api/health` require an authenticated Google Workspace session.
+> In API mode, all `/api/*` endpoints except `/api/health` and `/api/ready` require an authenticated Google Workspace session.
+
+## Internal deployment (Docker Compose + NGINX)
+
+This repository includes production-style packaging for internal hosting:
+
+- `server/Dockerfile` for the Node/Express backend
+- `nginx/Dockerfile` + `nginx/nginx.conf` to build the Vite frontend and serve static assets via NGINX
+- `docker-compose.prod.yml` for `db`, `backend`, and `nginx`
+
+### 1) Prepare env files
+
+```bash
+cp server/.env.prod.example server/.env.prod
+cp .env.frontend.example .env.frontend
+```
+
+Update values in `server/.env.prod` with real secrets and your hostnames.
+
+### 2) Build and run
+
+```bash
+docker compose --env-file .env.frontend -f docker-compose.prod.yml up -d --build
+```
+
+### 3) OAuth callback URL for proxied deployment
+
+When using NGINX as the public entrypoint, your Google OAuth callback URL must match the proxied URL:
+
+- `https://your-internal-host/auth/google/callback`
+
+Also set:
+
+- `FRONTEND_URL=https://your-internal-host`
+- `GOOGLE_CALLBACK_URL=https://your-internal-host/auth/google/callback`
+
+### 4) Secure cookies and TLS
+
+Production sessions are configured for secure cookie behavior behind a proxy (`trust proxy` + secure cookies). For secure cookies to work correctly, terminate TLS at NGINX or at an upstream load balancer that forwards `X-Forwarded-Proto=https`.
+
+### 5) Public health/readiness
+
+These endpoints are intentionally unauthenticated for monitoring:
+
+- `GET /api/health`
+- `GET /api/ready`
+
+## Production rollout acceptance checks
+
+- App loads at `/`.
+- Auth login redirects to Google and returns correctly.
+- `/api/me` works after login.
+- Non-admin users cannot `POST`/`PATCH`/`DELETE` work items.
+- `/api/health` and `/api/ready` are available without auth.
+- Restarting containers preserves DB data via the `postgres_data` volume.

@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none">
-  <!-- Leaf icon -->
-  <path d="M40 10C25 10 15 28 15 42c0 20 14 30 25 30s25-10 25-30C65 28 55 10 40 10z" fill="#5C7A72"/>
-  <path d="M40 18v44" stroke="#0E3B2E" stroke-width="3" stroke-linecap="round"/>
-  <!-- Text -->
-  <text x="80" y="50" font-family="'Playfair Display', serif" font-size="32" fill="#0E3B2E">Everleaf Law</text>
-</svg>

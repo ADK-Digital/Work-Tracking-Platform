@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0E3B2E" aria-hidden="true" role="img">
-  <!-- Two-user silhouette, solid style to match set -->
-  <path d="M9 12a4 4 0 1 0-0.001-8.001A4 4 0 0 0 9 12zM17 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
-  <path d="M2.5 20.5a5.5 5.5 0 0 1 5.5-5.5h2a5.5 5.5 0 0 1 5.5 5.5v.5H2.5v-.5z"/>
-  <path d="M14.5 18.5c.6-.9 1.6-1.5 2.7-1.5h1.1a3.7 3.7 0 0 1 3.7 3.7v.3H14.5v-2.5z"/>
-</svg>

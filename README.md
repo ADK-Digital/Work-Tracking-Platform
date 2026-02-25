@@ -1,25 +1,31 @@
 # Special Projects Tracker
 
-An internal Asana-lite style project with a **Vite + React + TypeScript** frontend prototype and a new **Node.js + Express + Prisma + Postgres** backend.
+An internal Asana-lite style project with a **Vite + React + TypeScript** frontend prototype and a **Node.js + Express + Prisma + Postgres** backend.
 
-## Frontend (current behavior)
+## Frontend modes
 
-The frontend still uses browser `localStorage` for persistence in this phase.
+- **Default mode (`localStorage`)**: no backend required.
+- **API mode**: enabled with `VITE_USE_API=true` and points to the backend at `VITE_API_BASE_URL`.
+
+### Frontend environment variables
+
+- `VITE_USE_API` (`"true" | "false"`) — default: `"false"`
+- `VITE_API_BASE_URL` — default: `"http://localhost:3001"`
+
+## Frontend quick start (default localStorage mode)
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Backend setup (Phase 1)
+## Backend + API mode setup
 
 ### 1) Start Postgres with Docker
 
 ```bash
 docker compose up -d
 ```
-
-This starts a local Postgres instance on `localhost:5432`.
 
 ### 2) Install backend dependencies
 
@@ -28,7 +34,7 @@ cd server
 npm install
 ```
 
-### 3) Configure environment
+### 3) Configure backend environment
 
 ```bash
 cp .env.example .env
@@ -36,25 +42,26 @@ cp .env.example .env
 
 `DATABASE_URL` in `.env.example` is already configured to the local Docker Postgres service.
 
-### 4) Run Prisma migration
+### 4) Run migration, seed, and backend
 
 ```bash
-npm run prisma:migrate -- --name init
-```
-
-### 5) Seed demo data
-
-```bash
+npm run prisma:migrate
 npm run seed
-```
-
-### 6) Run backend server
-
-```bash
 npm run dev
 ```
 
 Backend runs at `http://localhost:3001`.
+
+### 5) Run frontend in API mode
+
+In a separate terminal (project root):
+
+```bash
+npm install
+VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
+```
+
+> Note: default frontend behavior remains `localStorage` unless `VITE_USE_API=true` is set.
 
 ## API endpoints
 
@@ -65,37 +72,3 @@ Backend runs at `http://localhost:3001`.
 - `PATCH /api/work-items/:id`
 - `DELETE /api/work-items/:id` (soft delete)
 - `GET /api/work-items/:id/activity`
-
-## Quick curl examples
-
-```bash
-# Health
-curl http://localhost:3001/api/health
-
-# List non-deleted work items
-curl http://localhost:3001/api/work-items
-
-# List only tasks
-curl "http://localhost:3001/api/work-items?type=task"
-
-# Create a work item
-curl -X POST http://localhost:3001/api/work-items \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type":"task",
-    "title":"Follow up with design",
-    "status":"todo",
-    "owner":"Sam"
-  }'
-
-# Update a work item
-curl -X PATCH http://localhost:3001/api/work-items/<WORK_ITEM_ID> \
-  -H "Content-Type: application/json" \
-  -d '{"status":"in_progress"}'
-
-# Soft delete a work item
-curl -X DELETE http://localhost:3001/api/work-items/<WORK_ITEM_ID>
-
-# View activity for a work item
-curl http://localhost:3001/api/work-items/<WORK_ITEM_ID>/activity
-```

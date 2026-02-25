@@ -1,9 +1,10 @@
 import { seedWorkItems } from "../data/seedData";
-import type { CreateWorkItemInput, SortOption, StatusFilter, WorkItem } from "../types/workItem";
+import type { ActivityEvent, CreateWorkItemInput, SortOption, StatusFilter, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
 const STORAGE_KEY = "special-projects-tracker-work-items";
+const ACTIVITY_STORAGE_KEY = "special-projects-tracker-activity-events";
 
 const TERMINAL_STATUS = {
   purchase_request: new Set(["Received/Closed", "Rejected/Cancelled"]),
@@ -35,6 +36,34 @@ const writeItems = (items: WorkItem[]): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 };
 
+const readActivityEvents = (): ActivityEvent[] => {
+  const raw = localStorage.getItem(ACTIVITY_STORAGE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(raw) as ActivityEvent[];
+  } catch {
+    localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify([]));
+    return [];
+  }
+};
+
+const writeActivityEvents = (events: ActivityEvent[]): void => {
+  localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(events));
+};
+
+const recordActivity = (event: Omit<ActivityEvent, "id" | "timestamp">): void => {
+  const events = readActivityEvents();
+  events.push({
+    ...event,
+    id: generateId("act"),
+    timestamp: new Date().toISOString()
+  });
+  writeActivityEvents(events);
+};
+
 const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem[] => {
   if (!statusFilter || statusFilter === "all") {
     return items;
@@ -53,6 +82,7 @@ const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem
 
 export const workItemsService = {
   storageKey: STORAGE_KEY,
+  activityStorageKey: ACTIVITY_STORAGE_KEY,
 
   async getWorkItems(params: {
     type: WorkItem["type"];
@@ -71,6 +101,18 @@ export const workItemsService = {
     });
   },
 
+  async listActivity(workItemId: string): Promise<ActivityEvent[]> {
+    return withLatency(() => {
+      const events = readActivityEvents().filter((event) => event.workItemId === workItemId);
+      return [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    });
+  },
+
+  async addActivity(event: Omit<ActivityEvent, "id" | "timestamp">): Promise<void> {
+    return withLatency(() => {
+      recordActivity(event);
+    });
+  },
 
   async getWorkItemById(id: string): Promise<WorkItem | null> {
     return withLatency(() => {
@@ -95,6 +137,11 @@ export const workItemsService = {
 
       items.unshift(created);
       writeItems(items);
+      recordActivity({
+        workItemId: created.id,
+        type: "created",
+        message: "Work item created"
+      });
       return created;
     });
   },
@@ -108,9 +155,31 @@ export const workItemsService = {
         throw new Error("Work item not found");
       }
 
-      const updated = { ...items[index], ...patch } as WorkItem;
+      const previous = items[index];
+      const updated = { ...previous, ...patch } as WorkItem;
       items[index] = updated;
       writeItems(items);
+
+      if (patch.status !== undefined && patch.status !== previous.status) {
+        recordActivity({
+          workItemId: id,
+          type: "status_changed",
+          message: `Status changed from ${previous.status} to ${updated.status}`
+        });
+      } else if (patch.owner !== undefined && patch.owner !== previous.owner) {
+        recordActivity({
+          workItemId: id,
+          type: "owner_changed",
+          message: `Owner changed from ${previous.owner} to ${updated.owner}`
+        });
+      } else {
+        recordActivity({
+          workItemId: id,
+          type: "updated",
+          message: "Work item updated"
+        });
+      }
+
       return updated;
     });
   },
@@ -121,12 +190,18 @@ export const workItemsService = {
         item.id === id ? { ...item, deleted: true } : item
       );
       writeItems(items);
+      recordActivity({
+        workItemId: id,
+        type: "deleted",
+        message: "Work item deleted"
+      });
     });
   },
 
   async resetDemoData(): Promise<void> {
     return withLatency(() => {
       writeItems(seedWorkItems);
+      writeActivityEvents([]);
     });
   }
 };

@@ -35,6 +35,7 @@ model WorkItem {
   deletedAt   DateTime?
 
   activityEvents ActivityEvent[]
+  comments       Comment[]
 }
 
 model ActivityEvent {
@@ -48,4 +49,19 @@ model ActivityEvent {
   workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   @@index([workItemId])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  workItemId  String
+  body        String
+  authorEmail String
+  authorName  String?
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId, createdAt])
 }

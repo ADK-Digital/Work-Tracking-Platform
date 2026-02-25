@@ -67,4 +67,16 @@ export interface ActivityEvent {
   timestamp: string;
 }
 
+
+export interface Comment {
+  id: string;
+  workItemId: string;
+  body: string;
+  authorEmail: string;
+  authorName?: string | null;
+  createdAt: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+}
+
 export type CreateWorkItemInput = Omit<PurchaseRequestItem, "id" | "createdAt" | "deleted"> | Omit<TaskProjectItem, "id" | "createdAt" | "deleted">;

@@ -52,6 +52,39 @@ export const workItemsService = {
       throw error;
     }
   },
+  async listComments(...args: Parameters<typeof baseService.listComments>) {
+    try {
+      return await baseService.listComments(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  async addComment(...args: Parameters<typeof baseService.addComment>) {
+    try {
+      return await baseService.addComment(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  async softDeleteComment(...args: Parameters<typeof baseService.softDeleteComment>) {
+    try {
+      return await baseService.softDeleteComment(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
   async getWorkItemById(...args: Parameters<typeof baseService.getWorkItemById>) {
     try {
       return await baseService.getWorkItemById(...args);

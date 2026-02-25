@@ -13,6 +13,7 @@ import {
   PURCHASE_REQUEST_STATUSES,
   TASK_PROJECT_STATUSES,
   type ActivityEvent,
+  type Comment,
   type PurchaseRequestItem,
   type TaskProjectItem,
   type WorkItem
@@ -36,6 +37,9 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<WorkItem | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
@@ -44,6 +48,8 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const { notify } = useToast();
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
   const canViewDeleted = isApiModeEnabled && authUser?.role === "admin";
+  const canComment = !isApiModeEnabled || Boolean(authUser);
+  const isAdmin = !isApiModeEnabled || authUser?.role === "admin";
 
   const statusOptions = useMemo(
     () =>
@@ -54,32 +60,36 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     [item?.type]
   );
 
-  const loadItemAndActivity = async () => {
+  const loadItemActivityAndComments = async () => {
     if (!id) {
       setItem(null);
       setActivity([]);
+      setComments([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const [found, events] = await Promise.all([
+      const [found, events, nextComments] = await Promise.all([
         workItemsService.getWorkItemById(id, { includeDeleted: canViewDeleted }),
-        workItemsService.listActivity(id)
+        workItemsService.listActivity(id),
+        workItemsService.listComments(id)
       ]);
       setItem(found);
       setActivity(events);
+      setComments(nextComments);
     } catch {
       setItem(null);
       setActivity([]);
+      setComments([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadItemAndActivity();
+    void loadItemActivityAndComments();
   }, [id, canViewDeleted]);
 
   useEffect(() => {
@@ -109,6 +119,46 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       window.removeEventListener(API_FORBIDDEN_EVENT, handleForbidden);
     };
   }, []);
+
+  const handleAddComment = async () => {
+    if (!item) return;
+
+    const trimmedBody = commentBody.trim();
+    if (!trimmedBody) {
+      setCommentError("Comment cannot be empty.");
+      return;
+    }
+
+    if (trimmedBody.length > 5000) {
+      setCommentError("Comment must be 5000 characters or fewer.");
+      return;
+    }
+
+    setCommentError(null);
+
+    try {
+      await workItemsService.addComment(item.id, trimmedBody);
+      setCommentBody("");
+      notify("Comment added");
+      await loadItemActivityAndComments();
+    } catch {
+      setCommentError("Could not add comment. Please try again.");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm("Delete this comment?")) {
+      return;
+    }
+
+    try {
+      await workItemsService.softDeleteComment(commentId);
+      notify("Comment deleted");
+      await loadItemActivityAndComments();
+    } catch {
+      setCommentError("Could not delete comment. Please try again.");
+    }
+  };
 
   const openEdit = () => {
     if (!item) return;
@@ -142,7 +192,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     notify("Updated");
     setEditOpen(false);
-    await loadItemAndActivity();
+    await loadItemActivityAndComments();
   };
 
   const handleRestore = async () => {
@@ -150,7 +200,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     await workItemsService.restoreWorkItem(item.id);
     notify("Restored");
-    await loadItemAndActivity();
+    await loadItemActivityAndComments();
   };
 
   return (
@@ -260,6 +310,58 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
                 ))}
               </ul>
             )}
+          </div>
+
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+            <h3 className="text-base font-semibold text-slate-900">Comments</h3>
+            {commentError ? (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{commentError}</div>
+            ) : null}
+
+            {comments.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">No comments yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {comments.map((comment) => (
+                  <li key={comment.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs text-slate-500">
+                        {comment.authorName || comment.authorEmail} · {formatDateTime(comment.createdAt)}
+                      </p>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteComment(comment.id)}
+                          className="text-xs text-rose-700 underline hover:text-rose-800"
+                        >
+                          Delete
+                        </button>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{comment.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {canComment ? (
+              <div className="mt-4">
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Add a comment</span>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                    value={commentBody}
+                    maxLength={5000}
+                    onChange={(e) => setCommentBody(e.target.value)}
+                  />
+                </label>
+                <div className="mt-2 flex justify-end">
+                  <Button onClick={() => void handleAddComment()} disabled={!commentBody.trim()}>
+                    Add comment
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </>
       )}

@@ -1,6 +1,7 @@
 import { apiFetch } from "./http";
 import type {
   ActivityEvent,
+  Comment,
   CreateWorkItemInput,
   PurchaseRequestStatus,
   SortOption,
@@ -42,6 +43,24 @@ type BackendWorkItem = {
   updatedAt?: string;
   deletedAt?: string | null;
 };
+
+
+type BackendComment = {
+  id: string;
+  workItemId: string;
+  body: string;
+  authorEmail: string;
+  authorName?: string | null;
+  createdAt: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+};
+
+const normalizeComment = (comment: BackendComment): Comment => ({
+  ...comment,
+  createdAt: new Date(comment.createdAt).toISOString(),
+  deletedAt: comment.deletedAt ? new Date(comment.deletedAt).toISOString() : null,
+});
 
 const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
   if (item.type === "purchase_request") {
@@ -114,6 +133,26 @@ export const workItemsApiService = {
         timestamp: new Date(event.timestamp).toISOString()
       }))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  },
+
+  async listComments(workItemId: string): Promise<Comment[]> {
+    const comments = await apiFetch<BackendComment[]>(`/api/work-items/${workItemId}/comments`);
+    return comments.map(normalizeComment);
+  },
+
+  async addComment(workItemId: string, body: string): Promise<Comment> {
+    const comment = await apiFetch<BackendComment>(`/api/work-items/${workItemId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body })
+    });
+
+    return normalizeComment(comment);
+  },
+
+  async softDeleteComment(commentId: string): Promise<void> {
+    await apiFetch<void>(`/api/comments/${commentId}`, {
+      method: "DELETE"
+    });
   },
 
   async addActivity(_event: Omit<ActivityEvent, "id" | "timestamp">): Promise<void> {

@@ -1,10 +1,11 @@
 import { seedWorkItems } from "../data/seedData";
-import type { ActivityEvent, CreateWorkItemInput, SortOption, StatusFilter, WorkItem } from "../types/workItem";
+import type { ActivityEvent, Comment, CreateWorkItemInput, SortOption, StatusFilter, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
 const STORAGE_KEY = "special-projects-tracker-work-items";
 const ACTIVITY_STORAGE_KEY = "special-projects-tracker-activity-events";
+const COMMENTS_STORAGE_KEY = "special-projects-tracker-comments";
 
 const TERMINAL_STATUS = {
   purchase_request: new Set(["Received/Closed", "Rejected/Cancelled"]),
@@ -64,6 +65,25 @@ const recordActivity = (event: Omit<ActivityEvent, "id" | "timestamp">): void =>
   writeActivityEvents(events);
 };
 
+
+const readComments = (): Comment[] => {
+  const raw = localStorage.getItem(COMMENTS_STORAGE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(raw) as Comment[];
+  } catch {
+    localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify([]));
+    return [];
+  }
+};
+
+const writeComments = (comments: Comment[]): void => {
+  localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
+};
+
 const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem[] => {
   if (!statusFilter || statusFilter === "all") {
     return items;
@@ -83,6 +103,7 @@ const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem
 export const workItemsLocalService = {
   storageKey: STORAGE_KEY,
   activityStorageKey: ACTIVITY_STORAGE_KEY,
+  commentsStorageKey: COMMENTS_STORAGE_KEY,
 
   async getWorkItems(params: {
     type: WorkItem["type"];
@@ -105,6 +126,80 @@ export const workItemsLocalService = {
     return withLatency(() => {
       const events = readActivityEvents().filter((event) => event.workItemId === workItemId);
       return [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    });
+  },
+
+  async listComments(workItemId: string): Promise<Comment[]> {
+    return withLatency(() => {
+      const comments = readComments()
+        .filter((comment) => comment.workItemId === workItemId && !comment.deletedAt)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      return comments;
+    });
+  },
+
+  async addComment(workItemId: string, body: string): Promise<Comment> {
+    return withLatency(() => {
+      const trimmedBody = body.trim();
+      if (!trimmedBody) {
+        throw new Error("Comment body is required");
+      }
+
+      if (trimmedBody.length > 5000) {
+        throw new Error("Comment body must be 5000 characters or fewer");
+      }
+
+      const comments = readComments();
+      const created: Comment = {
+        id: generateId("cmt"),
+        workItemId,
+        body: trimmedBody,
+        authorEmail: "local.user@example.com",
+        authorName: "Local User",
+        createdAt: new Date().toISOString(),
+        deletedAt: null,
+        deletedBy: null,
+      };
+
+      comments.push(created);
+      writeComments(comments);
+      recordActivity({
+        workItemId,
+        type: "updated",
+        message: "Comment added",
+        actor: created.authorEmail,
+      });
+
+      return created;
+    });
+  },
+
+  async softDeleteComment(commentId: string): Promise<void> {
+    return withLatency(() => {
+      const comments = readComments();
+      const idx = comments.findIndex((comment) => comment.id === commentId);
+
+      if (idx < 0) {
+        throw new Error("Comment not found");
+      }
+
+      if (comments[idx].deletedAt) {
+        throw new Error("Comment already deleted");
+      }
+
+      comments[idx] = {
+        ...comments[idx],
+        deletedAt: new Date().toISOString(),
+        deletedBy: "local.admin@example.com",
+      };
+      writeComments(comments);
+      recordActivity({
+        workItemId: comments[idx].workItemId,
+        type: "updated",
+        message: "Comment deleted",
+        actor: "local.admin@example.com",
+      });
     });
   },
 
@@ -225,6 +320,7 @@ export const workItemsLocalService = {
     return withLatency(() => {
       writeItems(seedWorkItems);
       writeActivityEvents([]);
+      writeComments([]);
     });
   }
 };

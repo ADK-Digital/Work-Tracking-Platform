@@ -71,6 +71,18 @@ export const workItemsService = {
     });
   },
 
+
+  async getWorkItemById(id: string): Promise<WorkItem | null> {
+    return withLatency(() => {
+      const item = readItems().find((workItem) => workItem.id === id);
+      if (!item || item.deleted) {
+        return null;
+      }
+
+      return item;
+    });
+  },
+
   async createWorkItem(item: CreateWorkItemInput): Promise<WorkItem> {
     return withLatency(() => {
       const items = readItems();

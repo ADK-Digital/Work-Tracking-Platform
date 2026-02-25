@@ -8,7 +8,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
 const buildUrl = (path: string, query?: Record<string, string | number | boolean | undefined>): string => {
   const url = new URL(path, API_BASE_URL);
@@ -31,6 +31,7 @@ export const apiFetch = async <T>(
   const { query, headers, ...fetchOptions } = options;
   const response = await fetch(buildUrl(path, query), {
     ...fetchOptions,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...headers

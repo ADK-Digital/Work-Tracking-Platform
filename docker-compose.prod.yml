@@ -34,16 +34,21 @@ services:
       minio:
         condition: service_started
     restart: "no"
-    entrypoint:
+        entrypoint:
       - /bin/sh
       - -c
       - |
         # minio-init credentials must match MINIO_ROOT_USER/PASSWORD; do not change one without the other.
+
+        # Default bucket inside container (not via compose interpolation)
+        S3_BUCKET="${S3_BUCKET:-attachments}"
+
         until mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
           echo "Waiting for MinIO..."
           sleep 1
         done
-        mc mb --ignore-existing "local/${S3_BUCKET}"
+
+        mc mb --ignore-existing "local/$S3_BUCKET"
 
   backend:
     build:

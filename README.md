@@ -80,6 +80,18 @@ npm run dev
 
 Backend runs at `http://localhost:3001`.
 
+## CI build gate (backend)
+
+Pull requests and pushes to `main` must pass this backend CI contract from `server/`:
+
+```bash
+npm ci
+npx prisma generate
+npm run build
+```
+
+This gate ensures dependency installation is deterministic, Prisma client generation succeeds without a database connection, and the TypeScript compile remains healthy.
+
 ## Authorization setup (RBAC)
 
 ### Simplest mode (early rollout)

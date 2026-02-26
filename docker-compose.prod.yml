@@ -34,7 +34,7 @@ services:
       minio:
         condition: service_started
     restart: "no"
-        entrypoint:
+    entrypoint:
       - /bin/sh
       - -c
       - |

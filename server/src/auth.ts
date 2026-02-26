@@ -17,10 +17,10 @@ export const setupAuth = (app: Express, options: { pgPool: any | null }) => {
   const sessionSecret = process.env.SESSION_SECRET;
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3001/auth/google/callback';
+  const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
-  if (!sessionSecret || !googleClientId || !googleClientSecret) {
-    throw new Error('SESSION_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET are required to enable authentication.');
+  if (!sessionSecret || !googleClientId || !googleClientSecret || !googleCallbackUrl) {
+    throw new Error('SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL are required to enable authentication.');
   }
 
   const allowedDomains = parseAllowedDomains();

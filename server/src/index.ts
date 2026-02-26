@@ -193,7 +193,7 @@ const server = app.listen(port, () => {
     JSON.stringify({
       nodeEnv: process.env.NODE_ENV ?? 'development',
       frontendUrl,
-      googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3001/auth/google/callback',
+      googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
       allowedDomains: [...parseAllowedDomains()],
       trustProxyHops,
       rateLimitWindowMs,

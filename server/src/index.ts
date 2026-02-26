@@ -123,8 +123,16 @@ app.use((req, res, next) => {
 setupAuth(app, { pgPool: sessionPool });
 
 app.get('/auth/google', passport.authenticate('google'));
+app.get('/api/auth/login', passport.authenticate('google'));
 app.get(
   '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: `${frontendUrl}/?auth=failed`, session: true }),
+  (_req, res) => {
+    res.redirect(frontendUrl);
+  },
+);
+app.get(
+  '/api/auth/callback',
   passport.authenticate('google', { failureRedirect: `${frontendUrl}/?auth=failed`, session: true }),
   (_req, res) => {
     res.redirect(frontendUrl);
@@ -152,6 +160,15 @@ app.use('/api', healthRouter);
 app.use('/api', apiRateLimiter);
 app.use('/api', requireAuth);
 app.use('/api', requireAllowedUser);
+app.get('/api/auth/me', async (req, res, next) => {
+  try {
+    const { email, name } = req.user!;
+    const role = await getUserRole(req);
+    res.json({ email, name, role: role ?? 'user' });
+  } catch (error) {
+    next(error);
+  }
+});
 app.get('/api/me', async (req, res, next) => {
   try {
     const { email, name } = req.user!;

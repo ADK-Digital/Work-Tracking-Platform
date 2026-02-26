@@ -16,6 +16,8 @@ const getS3Lib = (): any => {
   return req('@aws-sdk/client-s3');
 };
 
+const isS3Configured = (): boolean => Boolean(process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY);
+
 const getClient = (): any => {
   if (cachedClient) {
     return cachedClient;
@@ -36,6 +38,51 @@ const getClient = (): any => {
 };
 
 const getBucket = (): string => requiredEnv('S3_BUCKET', 'attachments');
+
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+};
+
+export const checkS3BucketReadiness = async (
+  timeoutMs: number,
+): Promise<{ ok: boolean; status: string; error?: string }> => {
+  if (!isS3Configured()) {
+    return { ok: true, status: 'disabled by config' };
+  }
+
+  try {
+    const { HeadBucketCommand } = getS3Lib();
+    await withTimeout(
+      getClient().send(
+        new HeadBucketCommand({
+          Bucket: getBucket(),
+        }),
+      ),
+      timeoutMs,
+      'minio check timed out',
+    );
+    return { ok: true, status: 'reachable' };
+  } catch (error) {
+    console.error('[readiness] minio bucket check failed', error);
+    return {
+      ok: false,
+      status: 'unreachable',
+      error: error instanceof Error ? error.message : 'minio check failed',
+    };
+  }
+};
 
 export const putObject = async (key: string, buffer: Buffer, contentType: string): Promise<void> => {
   const { PutObjectCommand } = getS3Lib();

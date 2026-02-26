@@ -242,6 +242,54 @@ docker compose -f docker-compose.prod.yml exec -T minio sh -lc 'ls -la /data'
 
 The production backend startup command runs `prisma migrate deploy` before serving requests. This means fresh databases are migrated during container startup with no extra manual Prisma commands.
 
+### 3a) Production Smoke Test (single command)
+
+Use the smoke test script to validate the production compose stack end-to-end on any Docker-capable host.
+
+```bash
+# non-destructive (default): keep existing volumes/data
+./ops/prod-smoke-test.sh
+
+# destructive fresh-start validation (removes volumes first)
+./ops/prod-smoke-test.sh --fresh
+```
+
+What it validates:
+
+- Starts compose stack with `docker-compose.prod.yml` (and `.env.frontend` when present)
+- Waits for `GET /api/health` and `GET /api/ready` to return HTTP 200 (retry + timeout)
+- Confirms `minio-init` succeeded and MinIO bucket exists
+- Optionally runs authenticated checks when `SMOKE_TEST_SESSION_COOKIE` is provided:
+  - `GET /api/me`
+  - `GET /api/work-items`
+- Optionally tests attachment upload when both are provided:
+  - `SMOKE_TEST_SESSION_COOKIE`
+  - `SMOKE_TEST_WORK_ITEM_ID`
+
+Expected success output includes:
+
+```text
+[smoke] /api/health returned HTTP 200
+[smoke] /api/ready returned HTTP 200
+[smoke] Verified MinIO bucket directory exists: /data/<bucket>
+[smoke] PASS: production compose smoke test completed successfully
+```
+
+If `SMOKE_TEST_SESSION_COOKIE` is not set, the script safely skips authenticated/API mutation checks and still validates unauthenticated production readiness.
+
+#### Smoke test troubleshooting
+
+- **OAuth/session variables missing** (`SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, etc.):
+  backend may start but authenticated checks fail until valid Google auth env is configured.
+- **`TRUST_PROXY` misconfigured**:
+  secure session cookie behavior can break behind a proxy/load balancer; set `TRUST_PROXY` to match your proxy hop setup.
+- **Port conflict on `80`**:
+  if another service already binds port `80`, `nginx` will fail to start and health/ready checks will time out.
+- **Missing `.env.frontend`**:
+  compose still runs, but build args fall back to currently exported environment variables.
+- **MinIO init failure**:
+  verify `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_BUCKET` in `server/.env.prod`; inspect `minio-init` logs.
+
 ### 4) OAuth callback URL for proxied deployment
 
 When using NGINX as the public entrypoint, your Google OAuth callback URL must match the proxied URL:

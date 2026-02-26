@@ -142,8 +142,8 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `GET /auth/google`
 - `GET /auth/google/callback`
 - `POST /auth/logout`
-- `GET /api/health`
-- `GET /api/ready`
+- `GET /api/health` (process-up liveness check)
+- `GET /api/ready` (readiness: database + MinIO dependency checks)
 - `GET /api/me` (requires auth)
 - returns `{ email, name, role }`
 - `GET /api/work-items?type=task|purchase_request&includeDeleted=false`
@@ -309,8 +309,10 @@ Production sessions are configured for secure cookie behavior behind a proxy (`t
 
 These endpoints are intentionally unauthenticated for monitoring:
 
-- `GET /api/health`
-- `GET /api/ready`
+- `GET /api/health` (process-up liveness check)
+- `GET /api/ready` (readiness: database + MinIO dependency checks)
+  - `/api/ready` returns non-200 when Postgres is unreachable, or when MinIO bucket access fails while S3 is configured.
+  - When S3 credentials are not configured, readiness reports MinIO as `disabled by config`.
 
 
 ## Backups

@@ -59,7 +59,7 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
-    command: ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+    command: ["sh", "-c", "npx prisma migrate deploy && node --openssl-legacy-provider dist/server.js"]
     expose:
       - "3001"
 

@@ -15,8 +15,6 @@ services:
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
-    # Single source of truth: minio-init and backend S3 credentials must match MINIO_ROOT_USER/PASSWORD.
-    # Do not change one without the other.
     env_file:
       - ./server/.env.prod
     command: server /data --console-address ":9001"
@@ -38,9 +36,6 @@ services:
       - /bin/sh
       - -c
       - |
-        # minio-init credentials must match MINIO_ROOT_USER/PASSWORD; do not change one without the other.
-
-        # Default bucket inside container (NOT compose)
         S3_BUCKET="$${S3_BUCKET:-attachments}"
 
         until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do
@@ -57,6 +52,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./server/.env.prod
+    environment:
+      NODE_OPTIONS: --openssl-legacy-provider
     depends_on:
       db:
         condition: service_healthy

@@ -46,7 +46,7 @@ export const Header = ({ onReset, resetting, showAuthControls = false, authUser,
           </>
         ) : (
           <a
-            href={`${API_BASE_URL}/auth/google`}
+            href="/auth/google"
             className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
             Sign in

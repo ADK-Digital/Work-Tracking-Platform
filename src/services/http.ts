@@ -8,7 +8,17 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const isAbsoluteHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const defaultApiBaseUrl = import.meta.env.DEV ? "http://localhost:3001" : window.location.origin;
+
+// VITE_API_BASE_URL may be set to a relative path (e.g. /api) in production when nginx
+// reverse-proxies backend requests on the same origin.
+export const API_BASE_URL =
+  configuredApiBaseUrl && isAbsoluteHttpUrl(configuredApiBaseUrl)
+    ? configuredApiBaseUrl
+    : defaultApiBaseUrl;
 
 const buildUrl = (path: string, query?: Record<string, string | number | boolean | undefined>): string => {
   const url = new URL(path, API_BASE_URL);

@@ -15,7 +15,7 @@ Usage: ./ops/prod-smoke-test.sh [--fresh] [--help]
 
 Runs a production compose smoke test:
   - starts docker compose stack
-  - waits for /api/health and /api/ready
+  - waits for / and /api/health and /api/ready
   - verifies MinIO bucket initialization
   - optionally validates authenticated endpoints when SMOKE_TEST_SESSION_COOKIE is provided
   - optionally uploads a test attachment when both SMOKE_TEST_SESSION_COOKIE and SMOKE_TEST_WORK_ITEM_ID are provided
@@ -61,6 +61,50 @@ load_env_file() {
   else
     warn "${env_label} file not found at ${env_file}; relying on already-exported environment variables"
   fi
+}
+
+verify_login_redirect() {
+  local login_location callback_location
+
+  login_location="$(curl -sS -o /dev/null -D - "${BASE_URL}/auth/google" | awk 'BEGIN{IGNORECASE=1} /^Location:/ {print $2}' | tr -d '\r' | tail -n1)"
+
+  if [[ -z "$login_location" ]]; then
+    fail "Missing Location header from /auth/google"
+  fi
+
+  if [[ "$login_location" != https://accounts.google.com/* && "$login_location" != https://accounts.googleusercontent.com/* ]]; then
+    fail "Unexpected /auth/google redirect target: ${login_location}"
+  fi
+
+  log "Verified /auth/google redirects to Google OAuth endpoint"
+
+  callback_location="$(curl -sS -o /dev/null -D - "${BASE_URL}/api/auth/callback" | awk 'BEGIN{IGNORECASE=1} /^Location:/ {print $2}' | tr -d '\r' | tail -n1)"
+
+  if [[ -z "$callback_location" ]]; then
+    fail "Missing Location header from /api/auth/callback"
+  fi
+
+  if [[ "$callback_location" != "${BASE_URL}/?auth=failed" ]]; then
+    fail "Unexpected /api/auth/callback redirect target: ${callback_location}"
+  fi
+
+  log "Verified /api/auth/callback failure redirect returns to ${BASE_URL}"
+}
+
+verify_nginx_assets_do_not_reference_localhost() {
+  local nginx_id
+
+  nginx_id="$(docker compose -f "$COMPOSE_FILE" ps -q nginx)"
+  if [[ -z "$nginx_id" ]]; then
+    fail "nginx container not found; cannot validate built assets"
+  fi
+
+  if docker exec "$nginx_id" sh -lc "find /usr/share/nginx/html -type f -exec grep -n 'http://localhost' {} +" >/tmp/smoke-localhost-grep.out 2>&1; then
+    cat /tmp/smoke-localhost-grep.out >&2
+    fail "Found http://localhost references in built nginx assets"
+  fi
+
+  log "Verified built nginx assets do not contain http://localhost"
 }
 
 wait_for_endpoint_200() {
@@ -177,9 +221,12 @@ fi
 log "Starting production stack"
 docker compose "${COMPOSE_ENV_ARGS[@]}" -f "$COMPOSE_FILE" up -d --build
 
+wait_for_endpoint_200 "/"
 wait_for_endpoint_200 "/api/health"
 wait_for_endpoint_200 "/api/ready"
+verify_login_redirect
 verify_minio_bucket
+verify_nginx_assets_do_not_reference_localhost
 
 if [[ -n "${SMOKE_TEST_SESSION_COOKIE:-}" ]]; then
   authenticated_checks

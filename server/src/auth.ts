@@ -12,6 +12,15 @@ export const parseAllowedDomains = (): Set<string> =>
       .filter(Boolean),
   );
 
+const parseSameSite = (): 'lax' | 'strict' | 'none' => {
+  const raw = (process.env.SESSION_COOKIE_SAMESITE ?? 'lax').trim().toLowerCase();
+  if (raw === 'strict' || raw === 'none') {
+    return raw;
+  }
+
+  return 'lax';
+};
+
 export const setupAuth = (app: Express, options: { pgPool: any | null }) => {
   const PgStore = connectPgSimple(session);
   const sessionSecret = process.env.SESSION_SECRET;
@@ -24,6 +33,9 @@ export const setupAuth = (app: Express, options: { pgPool: any | null }) => {
   }
 
   const allowedDomains = parseAllowedDomains();
+  const sameSite = parseSameSite();
+  const cookieDomain = process.env.SESSION_COOKIE_DOMAIN?.trim() || undefined;
+  const secureCookie = process.env.SESSION_COOKIE_SECURE === 'true' ? true : process.env.NODE_ENV === 'production' ? 'auto' : false;
 
   passport.use(
     'google',
@@ -67,8 +79,9 @@ export const setupAuth = (app: Express, options: { pgPool: any | null }) => {
       proxy: true,
       cookie: {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
+        sameSite,
+        secure: secureCookie,
+        domain: cookieDomain,
       },
       store: options.pgPool
         ? new PgStore({

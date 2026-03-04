@@ -54,6 +54,8 @@ services:
       - ./server/.env.prod
     environment:
       NODE_OPTIONS: --openssl-legacy-provider
+      FRONTEND_URL: ${FRONTEND_URL:-http://pm.local}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://pm.local/auth/google/callback}
     depends_on:
       db:
         condition: service_healthy
@@ -69,7 +71,7 @@ services:
       dockerfile: nginx/Dockerfile
       args:
         VITE_USE_API: ${VITE_USE_API:-true}
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     restart: unless-stopped
     depends_on:
       - backend

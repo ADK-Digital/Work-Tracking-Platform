@@ -9,7 +9,7 @@ COPY postcss.config.js ./
 COPY tailwind.config.ts ./
 COPY src ./src
 ARG VITE_USE_API=true
-ARG VITE_API_BASE_URL=http://localhost
+ARG VITE_API_BASE_URL=/api
 ENV VITE_USE_API=${VITE_USE_API}
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN npm run build

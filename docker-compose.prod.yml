@@ -55,7 +55,7 @@ services:
     environment:
       NODE_OPTIONS: --openssl-legacy-provider
       FRONTEND_URL: ${FRONTEND_URL:-http://pm.local}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://pm.local/auth/google/callback}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost/auth/google/callback}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://pm.local}
       TRUST_PROXY: ${TRUST_PROXY:-1}
       SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}

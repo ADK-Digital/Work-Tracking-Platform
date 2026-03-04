@@ -17,6 +17,15 @@ const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 const isProd = process.env.NODE_ENV === 'production';
+const parseAllowedOrigins = (): Set<string> => {
+  const configured = (process.env.CORS_ALLOWED_ORIGINS ?? frontendUrl)
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return new Set(configured);
+};
+const allowedOrigins = parseAllowedOrigins();
 const parseTrustProxyHops = (): number => {
   const trustProxyValue = process.env.TRUST_PROXY;
   if (!trustProxyValue) {
@@ -89,7 +98,14 @@ const sessionPool = process.env.DATABASE_URL ? new Pool({ connectionString: proc
 
 app.use(
   cors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   }),
 );
@@ -194,6 +210,7 @@ const server = app.listen(port, () => {
       nodeEnv: process.env.NODE_ENV ?? 'development',
       frontendUrl,
       googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
+      allowedOrigins: [...allowedOrigins],
       allowedDomains: [...parseAllowedDomains()],
       trustProxyHops,
       rateLimitWindowMs,

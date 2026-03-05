@@ -4,3 +4,7 @@ dist
 server/.env.prod
 .env.frontend
 backups/
+
+# TLS certs (do not commit)
+nginx/certs/
+

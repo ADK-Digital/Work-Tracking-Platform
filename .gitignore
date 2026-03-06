@@ -6,5 +6,5 @@ server/.env.prod
 backups/
 
 # TLS certs (do not commit)
-nginx/certs/
+nginx/certs/*
 !nginx/certs/.gitkeep

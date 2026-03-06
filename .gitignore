@@ -7,4 +7,4 @@ backups/
 
 # TLS certs (do not commit)
 nginx/certs/
-
+!nginx/certs/.gitkeep

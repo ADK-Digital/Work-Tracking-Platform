@@ -68,7 +68,7 @@ docker ps
 
 Restart stack:
 
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ---
 
@@ -140,7 +140,7 @@ cd ~/pm-prod/ADK-Digital-Site
 
 git pull
 
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 Verify containers:
 

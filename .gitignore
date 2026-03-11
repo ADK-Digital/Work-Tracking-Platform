@@ -8,3 +8,11 @@ backups/
 # TLS certs (do not commit)
 nginx/certs/*
 !nginx/certs/.gitkeep
+
+# Server-local cert/request files in repo root
+*.cer
+*.csr
+*.key
+*.key.copy
+*.req
+certreq.conf

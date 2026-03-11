@@ -169,6 +169,44 @@ git@github.com:Ballston-Spa-CSD/bscsd-pm.git
 
 ---
 
+## Compose and Restart Notes
+
+Use the full production compose file set for stack operations:
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+To view full production services:
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml config --services
+
+Important:
+- Do not rely on plain `docker compose up -d` without the production override file.
+- The host Ubuntu nginx service must remain disabled, or it will take port 80/443 and prevent the Docker nginx container from starting after reboot.
+
+Disable host nginx if needed:
+
+sudo systemctl disable --now nginx
+
+## Post-Reboot Validation
+
+1. SSH into the server
+2. Check containers:
+
+docker ps
+
+3. Confirm nginx has published ports:
+
+docker port adk-digital-site-nginx-1
+
+Expected:
+- 80/tcp -> 0.0.0.0:80
+- 443/tcp -> 0.0.0.0:443
+
+4. Open:
+https://pm-dev.bscsd.org
+
+5. Verify login via Google SSO
+
 ## Maintenance Tasks
 
 Check backups:
@@ -183,3 +221,18 @@ crontab -l
 Check container status:
 
 docker ps
+
+## Troubleshooting
+
+If the site is unreachable after reboot:
+
+1. SSH into the server
+2. Confirm host nginx is not running
+   sudo systemctl status nginx
+
+3. Check containers
+   docker ps
+
+4. If nginx container missing or unhealthy:
+   cd ~/pm-prod/ADK-Digital-Site
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d nginx

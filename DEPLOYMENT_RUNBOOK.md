@@ -1,27 +1,25 @@
-# BSCSD Project Manager Deployment Runbook
+BSCSD Project Manager Deployment Runbook
 
-## System Overview
+System Overview
 
-Application: BSCSD Project Manager  
+Application: BSCSD Project Manager
 Purpose: Internal project tracking system replacing Asana.
 
 Architecture:
 
-Frontend: React + Vite  
-Backend: Node.js + Express  
-Database: PostgreSQL  
-Object Storage: MinIO  
-Reverse Proxy: Nginx  
+Frontend: React + Vite
+Backend: Node.js + Express
+Database: PostgreSQL
+Object Storage: MinIO
+Reverse Proxy: Nginx
 Authentication: Google OAuth (Google Workspace)
 
 Infrastructure:
 
-Host: Ubuntu VM running in Hyper-V  
+Host: Ubuntu VM running in Hyper-V
 Container Runtime: Docker Compose
 
----
-
-## Server Information
+Server Information
 
 Hostname:
 pm-server
@@ -35,9 +33,7 @@ Server IP:
 SSH User:
 stefan
 
----
-
-## Repository
+Repository
 
 GitHub Organization:
 Ballston-Spa-CSD
@@ -51,15 +47,13 @@ Server Repo Path:
 Local Repo Path:
 C:\Users\snaumowicz\Github\bscsd-pm
 
----
-
-## Docker Services
+Docker Services
 
 Containers:
 
-nginx  
-backend  
-postgres  
+nginx
+backend
+postgres
 minio
 
 Check container status:
@@ -70,9 +64,7 @@ Restart stack:
 
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
----
-
-## TLS Configuration
+TLS Configuration
 
 Certificates stored at:
 
@@ -82,9 +74,7 @@ Reverse proxy container:
 
 adk-digital-site-nginx
 
----
-
-## Database Backups
+Database Backups
 
 Backup script:
 
@@ -106,9 +96,7 @@ Restore example:
 
 gunzip -c backup.sql.gz | docker exec -i adk-digital-site-db-1 psql -U tracker -d DATABASE_NAME
 
----
-
-## MinIO Backups
+MinIO Backups
 
 Backup script:
 
@@ -126,9 +114,62 @@ Retention:
 
 30 days
 
----
+Secrets Management
 
-## Deployment Procedure
+The repository does not contain real secrets.
+
+Sensitive values such as authentication credentials and session keys are stored only on the server.
+
+The runtime production environment file exists only on the server:
+
+/home/stefan/pm-prod/ADK-Digital-Site/server/.env.prod
+
+This file contains the real values for:
+
+SESSION_SECRET
+GOOGLE_CLIENT_SECRET
+database credentials
+MinIO credentials
+
+The repository version of server/.env.prod contains placeholder values and should never contain real secrets.
+
+The server copy of server/.env.prod is marked with the git skip-worktree flag so that git pull operations do not overwrite it.
+
+Google Workspace Authentication
+
+Authentication is performed using Google OAuth.
+
+Authorization is controlled through Google Workspace group membership.
+
+Admin group used by the application:
+
+cms-admins@bscsd.org
+
+Users who belong to this group are automatically granted the admin role in the application.
+
+The backend verifies group membership using the Google Workspace Admin Directory API.
+
+Google Service Account Key
+
+The service account used to query Google Workspace group membership is stored outside the repository.
+
+Location on server:
+
+/home/stefan/pm-prod/secrets/bscsd-cms-directory-reader.json
+
+This key is mounted into the backend container using Docker Compose.
+
+Mount path inside the container:
+
+/run/secrets/bscsd-cms-directory-reader.json
+
+The backend reads this key through the environment variable:
+
+GOOGLE_SERVICE_ACCOUNT_JSON=/run/secrets/bscsd-cms-directory-reader.json
+
+The key file must never be committed to Git.
+
+Deployment Procedure
 
 SSH into server:
 
@@ -140,15 +181,15 @@ cd ~/pm-prod/ADK-Digital-Site
 
 git pull
 
+Rebuild and restart the stack:
+
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 Verify containers:
 
 docker ps
 
----
-
-## Git Authentication
+Git Authentication
 
 Server uses SSH deploy key:
 
@@ -156,20 +197,20 @@ Server uses SSH deploy key:
 
 Git remote:
 
-git@github.com:Ballston-Spa-CSD/bscsd-pm.git
+git@github.com
+:Ballston-Spa-CSD/bscsd-pm.git
 
----
+Recovery Procedure
 
-## Recovery Procedure
+Restore PostgreSQL backup
 
-1. Restore PostgreSQL backup
-2. Restore MinIO volume
-3. Start Docker stack
-4. Verify application access
+Restore MinIO volume
 
----
+Start Docker stack
 
-## Compose and Restart Notes
+Verify application access
+
+Compose and Restart Notes
 
 Use the full production compose file set for stack operations:
 
@@ -180,39 +221,44 @@ To view full production services:
 docker compose -f docker-compose.yml -f docker-compose.prod.yml config --services
 
 Important:
-- Do not rely on plain `docker compose up -d` without the production override file.
-- The host Ubuntu nginx service must remain disabled, or it will take port 80/443 and prevent the Docker nginx container from starting after reboot.
+
+Do not rely on plain docker compose up -d without the production override file.
+
+The host Ubuntu nginx service must remain disabled, or it will take port 80/443 and prevent the Docker nginx container from starting after reboot.
 
 Disable host nginx if needed:
 
 sudo systemctl disable --now nginx
 
-## Post-Reboot Validation
+Post-Reboot Validation
 
-1. SSH into the server
-2. Check containers:
+SSH into the server
+
+Check containers:
 
 docker ps
 
-3. Confirm nginx has published ports:
+Confirm nginx has published ports:
 
 docker port adk-digital-site-nginx-1
 
 Expected:
-- 80/tcp -> 0.0.0.0:80
-- 443/tcp -> 0.0.0.0:443
 
-4. Open:
+80/tcp -> 0.0.0.0:80
+443/tcp -> 0.0.0.0:443
+
+Open:
+
 https://pm-dev.bscsd.org
 
-5. Verify login via Google SSO
+Verify login via Google SSO
 
-## Maintenance Tasks
+Maintenance Tasks
 
 Check backups:
 
-ls ~/pm-backups/postgres  
-ls ~/pm-backups/minio  
+ls ~/pm-backups/postgres
+ls ~/pm-backups/minio
 
 Check cron jobs:
 
@@ -222,17 +268,20 @@ Check container status:
 
 docker ps
 
-## Troubleshooting
+Troubleshooting
 
 If the site is unreachable after reboot:
 
-1. SSH into the server
-2. Confirm host nginx is not running
-   sudo systemctl status nginx
+SSH into the server
 
-3. Check containers
-   docker ps
+Confirm host nginx is not running
+sudo systemctl status nginx
 
-4. If nginx container missing or unhealthy:
-   cd ~/pm-prod/ADK-Digital-Site
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d nginx
+Check containers
+docker ps
+
+If nginx container missing or unhealthy:
+
+cd ~/pm-prod/ADK-Digital-Site
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d nginx

@@ -9,12 +9,21 @@ const parseEnvList = (value: string | undefined): string[] =>
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
-const allowedDomains = new Set(parseEnvList(process.env.ALLOWED_EMAIL_DOMAINS));
-const allowedUserGroups = parseEnvList(process.env.ALLOWED_USER_GROUPS);
-const adminGroups = parseEnvList(process.env.ADMIN_GROUPS);
-const adminEmails = new Set(parseEnvList(process.env.ADMIN_EMAILS));
+const getAuthorizationConfig = () => {
+  const allowedDomains = new Set(parseEnvList(process.env.ALLOWED_EMAIL_DOMAINS));
+  const allowedUserGroups = parseEnvList(process.env.ALLOWED_USER_GROUPS);
+  const adminGroups = parseEnvList(process.env.ADMIN_GROUPS);
+  const adminEmails = new Set(parseEnvList(process.env.ADMIN_EMAILS));
 
-const isDomainAllowed = (email: string): boolean => {
+  return {
+    allowedDomains,
+    allowedUserGroups,
+    adminGroups,
+    adminEmails,
+  };
+};
+
+const isDomainAllowed = (email: string, allowedDomains: Set<string>): boolean => {
   if (allowedDomains.size === 0) {
     return true;
   }
@@ -40,8 +49,9 @@ const hasAnyGroupMembership = async (email: string, groups: string[]): Promise<b
 
 const resolveRole = async (email: string): Promise<Role | null> => {
   const normalizedEmail = email.toLowerCase();
+  const { allowedDomains, allowedUserGroups, adminGroups, adminEmails } = getAuthorizationConfig();
 
-  if (!isDomainAllowed(normalizedEmail)) {
+  if (!isDomainAllowed(normalizedEmail, allowedDomains)) {
     return null;
   }
 
@@ -118,4 +128,3 @@ export const requireRole = (requiredRole: Role): RequestHandler => async (req, r
 };
 
 export const getUserRole = async (req: Request): Promise<Role | null> => computeRole(req);
-

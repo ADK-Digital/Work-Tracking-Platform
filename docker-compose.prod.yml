@@ -61,6 +61,8 @@ services:
       SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
       SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-lax}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+    volumes:
+      - /home/stefan/pm-prod/secrets/bscsd-cms-directory-reader.json:/run/secrets/bscsd-cms-directory-reader.json:ro
     depends_on:
       db:
         condition: service_healthy

@@ -10,6 +10,7 @@ import { prisma } from './db';
 import healthRouter from './routes/health';
 import attachmentsRouter from './routes/attachments';
 import workItemsRouter from './routes/workItems';
+import ownersRouter from './routes/owners';
 
 dotenv.config();
 
@@ -176,24 +177,34 @@ app.use('/api', healthRouter);
 app.use('/api', apiRateLimiter);
 app.use('/api', requireAuth);
 app.use('/api', requireAllowedUser);
+const serializeCurrentUser = async (req: express.Request) => {
+  const { email, name, googleSub } = req.user!;
+  const role = await getUserRole(req);
+
+  return {
+    email,
+    name,
+    role: role ?? 'user',
+    googleId: googleSub,
+    displayName: name,
+  };
+};
+
 app.get('/api/auth/me', async (req, res, next) => {
   try {
-    const { email, name } = req.user!;
-    const role = await getUserRole(req);
-    res.json({ email, name, role: role ?? 'user' });
+    res.json(await serializeCurrentUser(req));
   } catch (error) {
     next(error);
   }
 });
 app.get('/api/me', async (req, res, next) => {
   try {
-    const { email, name } = req.user!;
-    const role = await getUserRole(req);
-    res.json({ email, name, role: role ?? 'user' });
+    res.json(await serializeCurrentUser(req));
   } catch (error) {
     next(error);
   }
 });
+app.use('/api', ownersRouter);
 app.use('/api', workItemsRouter);
 app.use('/api', attachmentsRouter);
 

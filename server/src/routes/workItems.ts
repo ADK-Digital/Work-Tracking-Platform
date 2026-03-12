@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { getUserRole, requireRole } from '../authorization';
 import { prisma } from '../db';
 import { listGroupMembers } from '../googleDirectory';
+import { resolveOwnerDirectoryGroup } from '../ownerDirectoryGroup';
 
 const workItemsRouter = Router();
 
@@ -65,6 +66,16 @@ const validateOwnerAgainstDirectory = async (owner: OwnerFields): Promise<boolea
   }
 
   return members.some((member) => member.googleId === owner.ownerGoogleId && member.email === owner.ownerEmail.toLowerCase());
+};
+
+
+const validateOwner = async (owner: string | null | undefined): Promise<boolean> => {
+  if (!owner || !owner.trim()) {
+    return true;
+  }
+
+  const groupEmail = resolveOwnerDirectoryGroup();
+  return isMember(owner.trim().toLowerCase(), groupEmail);
 };
 
 
@@ -405,6 +416,10 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
     return res.status(400).json({ error: 'Status is required.' });
   }
 
+  if (!(await validateOwner(owner))) {
+    return res.status(400).json({ error: 'Owner must be in the owner directory group.' });
+  }
+
   const item = await prisma.workItem.create({
     data: {
       type: type as WorkItemType,
@@ -461,6 +476,10 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
 
   if (status !== undefined && !status.trim()) {
     return res.status(400).json({ error: 'Status must be non-empty.' });
+  }
+
+  if (owner !== undefined && !(await validateOwner(owner))) {
+    return res.status(400).json({ error: 'Owner must be in the owner directory group.' });
   }
 
   const data: Prisma.WorkItemUpdateInput = {

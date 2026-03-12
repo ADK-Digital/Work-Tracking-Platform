@@ -405,10 +405,6 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
     return res.status(400).json({ error: 'Status is required.' });
   }
 
-  if (!(await validateOwner(owner))) {
-    return res.status(400).json({ error: 'Owner must be in the owner directory group.' });
-  }
-
   const item = await prisma.workItem.create({
     data: {
       type: type as WorkItemType,
@@ -465,10 +461,6 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
 
   if (status !== undefined && !status.trim()) {
     return res.status(400).json({ error: 'Status must be non-empty.' });
-  }
-
-  if (owner !== undefined && !(await validateOwner(owner))) {
-    return res.status(400).json({ error: 'Owner must be in the owner directory group.' });
   }
 
   const data: Prisma.WorkItemUpdateInput = {

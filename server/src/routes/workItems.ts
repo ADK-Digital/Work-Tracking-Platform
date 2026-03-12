@@ -68,17 +68,6 @@ const validateOwnerAgainstDirectory = async (owner: OwnerFields): Promise<boolea
   return members.some((member) => member.googleId === owner.ownerGoogleId && member.email === owner.ownerEmail.toLowerCase());
 };
 
-
-const validateOwner = async (owner: string | null | undefined): Promise<boolean> => {
-  if (!owner || !owner.trim()) {
-    return true;
-  }
-
-  const groupEmail = resolveOwnerDirectoryGroup();
-  return isMember(owner.trim().toLowerCase(), groupEmail);
-};
-
-
 const parseLimit = (value: unknown): number => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {

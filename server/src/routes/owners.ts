@@ -1,0 +1,99 @@
+import { Router } from 'express';
+import type { DirectoryPerson } from '../googleDirectory';
+import { listGroupMembers } from '../googleDirectory';
+
+const ownersRouter = Router();
+
+const parseEnvList = (value: string | undefined): string[] =>
+  (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const DEFAULT_OWNER_GROUP = 'cms-admins';
+
+const compareOwners = (a: DirectoryPerson, b: DirectoryPerson): number => {
+  const byName = a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' });
+  if (byName !== 0) {
+    return byName;
+  }
+
+  return a.email.localeCompare(b.email, undefined, { sensitivity: 'base' });
+};
+
+const resolveOwnerDirectoryGroup = (): string => {
+  const explicitGroup = process.env.OWNER_DIRECTORY_GROUP?.trim();
+  if (explicitGroup) {
+    return explicitGroup;
+  }
+
+  const adminGroups = parseEnvList(process.env.ADMIN_GROUPS);
+  if (adminGroups.length > 0) {
+    return adminGroups[0];
+  }
+
+  return DEFAULT_OWNER_GROUP;
+};
+
+const parseMockOwners = (): DirectoryPerson[] => {
+  const raw = process.env.OWNER_DIRECTORY_MOCK_JSON?.trim();
+  if (!raw) {
+    return [
+      {
+        googleId: 'mock-owner-001',
+        email: 'alex.kim@example.org',
+        displayName: 'Alex Kim',
+      },
+      {
+        googleId: 'mock-owner-002',
+        email: 'morgan.lee@example.org',
+        displayName: 'Morgan Lee',
+      },
+      {
+        googleId: 'mock-owner-003',
+        email: 'chris.nguyen@example.org',
+        displayName: 'Chris Nguyen',
+      },
+    ].sort(compareOwners);
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is DirectoryPerson => Boolean(item?.googleId && item?.email && item?.displayName))
+      .map((item) => ({
+        googleId: item.googleId,
+        email: item.email.toLowerCase(),
+        displayName: item.displayName,
+      }))
+      .sort(compareOwners);
+  } catch (error) {
+    console.error('Failed to parse OWNER_DIRECTORY_MOCK_JSON', error);
+    return [];
+  }
+};
+
+ownersRouter.get('/owners/directory', async (_req, res) => {
+  const groupEmail = resolveOwnerDirectoryGroup();
+  const members = await listGroupMembers(groupEmail);
+
+  if (members === null) {
+    return res.json({
+      groupEmail,
+      owners: parseMockOwners(),
+      source: 'mock',
+    });
+  }
+
+  return res.json({
+    groupEmail,
+    owners: members,
+    source: 'google-directory',
+  });
+});
+
+export default ownersRouter;

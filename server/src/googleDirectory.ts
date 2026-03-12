@@ -11,6 +11,12 @@ type CacheEntry = {
   expiresAt: number;
 };
 
+export type DirectoryPerson = {
+  googleId: string;
+  email: string;
+  displayName: string;
+};
+
 const membershipCache = new Map<string, CacheEntry>();
 const MEMBERSHIP_TTL_MS = 5 * 60 * 1000;
 
@@ -81,6 +87,73 @@ const getDirectoryClient = async (): Promise<any | null> => {
   return google.admin({ version: 'directory_v1', auth: authClient });
 };
 
+const toDirectoryPerson = (member: any): DirectoryPerson | null => {
+  const email = typeof member?.email === 'string' ? member.email.toLowerCase() : '';
+  const googleId = typeof member?.id === 'string' ? member.id : '';
+
+  if (!email || !googleId) {
+    return null;
+  }
+
+  const displayNameCandidate =
+    typeof member?.name?.fullName === 'string' && member.name.fullName.trim().length > 0
+      ? member.name.fullName.trim()
+      : email;
+
+  return {
+    googleId,
+    email,
+    displayName: displayNameCandidate,
+  };
+};
+
+const comparePeople = (a: DirectoryPerson, b: DirectoryPerson): number => {
+  const byName = a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' });
+  if (byName !== 0) {
+    return byName;
+  }
+
+  return a.email.localeCompare(b.email, undefined, { sensitivity: 'base' });
+};
+
+export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPerson[] | null> => {
+  const directory = await getDirectoryClient();
+
+  if (!directory) {
+    return null;
+  }
+
+  try {
+    const peopleByEmail = new Map<string, DirectoryPerson>();
+    let pageToken: string | undefined;
+
+    do {
+      const response = await directory.members.list({
+        groupKey: groupEmail,
+        maxResults: 200,
+        pageToken,
+      });
+
+      const members = Array.isArray(response.data.members) ? response.data.members : [];
+      for (const member of members) {
+        const person = toDirectoryPerson(member);
+        if (!person) {
+          continue;
+        }
+
+        peopleByEmail.set(person.email, person);
+      }
+
+      pageToken = response.data.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    return [...peopleByEmail.values()].sort(comparePeople);
+  } catch (error) {
+    console.error(`Google Directory member listing failed for ${groupEmail}`, error);
+    return [];
+  }
+};
+
 export const isMember = async (email: string, groupEmail: string): Promise<boolean> => {
   const cached = getCachedMembership(email, groupEmail);
 
@@ -108,4 +181,3 @@ export const isMember = async (email: string, groupEmail: string): Promise<boole
     return false;
   }
 };
-

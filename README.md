@@ -55,6 +55,8 @@ For Google Workspace SSO, also configure:
 - `GOOGLE_SERVICE_ACCOUNT_JSON` (optional: service account JSON string or file path)
 - `GOOGLE_IMPERSONATE_ADMIN_EMAIL` (optional: Workspace admin email for domain-wide delegation)
 - `GOOGLE_WORKSPACE_CUSTOMER_ID` (optional; reserved for future Admin SDK lookups)
+- `OWNER_DIRECTORY_GROUP` (optional; defaults to first `ADMIN_GROUPS` entry, otherwise `cms-admins`)
+- `OWNER_DIRECTORY_MOCK_JSON` (optional JSON array used when Directory credentials are unavailable)
 - `FRONTEND_URL` (frontend origin, default `http://localhost:5173`)
 - `TRUST_PROXY` (`true`, `false`, or proxy hop count; defaults to `1` in production and `0` in development)
 - `RATE_LIMIT_WINDOW_MS` (optional API rate-limit window in milliseconds, default `900000`)
@@ -121,7 +123,7 @@ If group env vars are not set, the app falls back to domain + `ADMIN_EMAILS` beh
 
 1. Set `ALLOWED_EMAIL_DOMAINS`.
 2. Set `ADMIN_GROUPS` (or `ADMIN_EMAILS` for initial rollout).
-3. Verify `GET /api/me` returns `{ email, name, role }`.
+3. Verify `GET /api/me` returns `{ email, name, role, googleId, displayName }`.
 4. Verify a non-admin receives `403 { "message": "Forbidden" }` on protected mutations.
 5. Verify an admin can create, update, and delete work items.
 6. Verify activity entries still capture actor email after admin mutations.
@@ -145,7 +147,8 @@ VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
 - `GET /api/health` (process-up liveness check)
 - `GET /api/ready` (readiness: database + MinIO dependency checks)
 - `GET /api/me` (requires auth)
-- returns `{ email, name, role }`
+- returns `{ email, name, role, googleId, displayName }`
+- `GET /api/owners/directory` (requires auth; returns assignable owners from `cms-admins`/configured owner group)
 - `GET /api/work-items?type=task|purchase_request&includeDeleted=false`
 - `GET /api/work-items/:id`
 - `POST /api/work-items` (**admin only**)

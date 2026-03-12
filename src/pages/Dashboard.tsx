@@ -30,7 +30,6 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const [searchStatus, setSearchStatus] = useState("all");
   const [searchOwner, setSearchOwner] = useState("all");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [owners, setOwners] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
   const [dashboardOwnerFilter, setDashboardOwnerFilter] = useState<DashboardOwnerFilter>("me");
   const [directoryOwners, setDirectoryOwners] = useState<OwnerDirectoryEntry[]>([]);
@@ -95,7 +94,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       const nextResults = await workItemsService.searchWorkItems(nextQuery, {
         type: searchType === "all" ? undefined : searchType,
         status: searchStatus === "all" ? undefined : searchStatus,
-        owner: searchOwner === "all" ? undefined : searchOwner,
+        ownerGoogleId: searchOwner === "all" ? undefined : searchOwner,
         includeDeleted: canUseDeletedFeatures ? showDeleted : false,
         limit: 50,
       });
@@ -133,26 +132,6 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       window.removeEventListener(API_FORBIDDEN_EVENT, handleForbidden);
     };
   }, []);
-
-  useEffect(() => {
-    const loadOwners = async () => {
-      const [purchaseItems, taskItems] = await Promise.all([
-        workItemsService.getWorkItems({ type: "purchase_request", includeDeleted: canUseDeletedFeatures ? showDeleted : false }),
-        workItemsService.getWorkItems({ type: "task_project", includeDeleted: canUseDeletedFeatures ? showDeleted : false }),
-      ]);
-
-      const uniqueOwners = new Set<string>();
-      [...purchaseItems, ...taskItems].forEach((item) => {
-        if (item.owner && item.owner !== "Unassigned") {
-          uniqueOwners.add(item.owner);
-        }
-      });
-
-      setOwners([...uniqueOwners].sort((a, b) => a.localeCompare(b)));
-    };
-
-    void loadOwners();
-  }, [canUseDeletedFeatures, showDeleted, resetSignal]);
 
   const searchingViewEnabled = activeQuery.length > 0;
 
@@ -278,8 +257,8 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
             <span className="mb-1 block font-medium text-slate-700">Owner</span>
             <select value={searchOwner} onChange={(event) => setSearchOwner(event.target.value)} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
               <option value="all">All</option>
-              {owners.map((owner) => (
-                <option key={owner} value={owner}>{owner}</option>
+              {directoryOwners.map((owner) => (
+                <option key={owner.googleId} value={owner.googleId}>{owner.displayName}</option>
               ))}
             </select>
           </label>

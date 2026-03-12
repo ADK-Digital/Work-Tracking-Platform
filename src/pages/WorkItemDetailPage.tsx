@@ -9,6 +9,7 @@ import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { API_FORBIDDEN_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
+import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import {
   PURCHASE_REQUEST_STATUSES,
   TASK_PROJECT_STATUSES,
@@ -20,6 +21,7 @@ import {
   type WorkItem
 } from "../types/workItem";
 import { formatDate, formatDateTime } from "../utils/dates";
+import { formatOwnerLabel } from "../utils/owners";
 
 interface WorkItemDetailPageProps {
   onReset: () => void;
@@ -30,7 +32,7 @@ type FormState = {
   title: string;
   description: string;
   status: WorkItem["status"];
-  owner: string;
+  ownerGoogleId: string;
 };
 
 export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPageProps) => {
@@ -48,7 +50,8 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [editOpen, setEditOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", owner: "" });
+  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", ownerGoogleId: "" });
+  const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
@@ -117,6 +120,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     };
 
     void loadMe();
+    void loadOwnerDirectory().then((response) => setOwnerOptions(response.owners)).catch(() => setOwnerOptions([]));
 
     const handleForbidden = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -213,7 +217,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       title: item.title,
       description: item.description ?? "",
       status: item.status,
-      owner: item.owner
+      ownerGoogleId: item.ownerGoogleId
     });
     setEditOpen(true);
   };
@@ -223,7 +227,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.title.trim()) nextErrors.title = "Title is required";
-    if (!form.owner.trim()) nextErrors.owner = "Owner is required";
+    if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -232,7 +236,13 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       status: form.status as WorkItem["status"],
-      owner: form.owner.trim()
+      ...(ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)
+        ? {
+            ownerGoogleId: form.ownerGoogleId,
+            ownerEmail: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email,
+            ownerName: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.displayName
+          }
+        : {})
     });
 
     notify("Updated");
@@ -290,7 +300,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Owner</p>
-                <p className="mt-1 text-sm text-slate-800">{item.owner}</p>
+                <p className="mt-1 text-sm text-slate-800">{formatOwnerLabel(item)}</p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Requester</p>
@@ -486,11 +496,12 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             error={errors.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
-          <Input
+          <Select
             label="Owner"
-            value={form.owner}
-            error={errors.owner}
-            onChange={(e) => setForm({ ...form, owner: e.target.value })}
+            value={form.ownerGoogleId}
+            error={errors.ownerGoogleId}
+            options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]}
+            onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })}
           />
           <Select
             label="Status"

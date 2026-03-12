@@ -54,6 +54,21 @@ const parseMockOwners = (): DirectoryPerson[] => {
         email: 'chris.nguyen@example.org',
         displayName: 'Chris Nguyen',
       },
+      {
+        googleId: 'mock-owner-004',
+        email: 'avery.tran@example.org',
+        displayName: 'Avery Tran',
+      },
+      {
+        googleId: 'mock-owner-005',
+        email: 'noah.diaz@example.org',
+        displayName: 'Noah Diaz',
+      },
+      {
+        googleId: 'mock-owner-006',
+        email: 'kira.james@example.org',
+        displayName: 'Kira James',
+      },
     ].sort(compareOwners);
   }
 

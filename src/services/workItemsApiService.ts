@@ -41,7 +41,9 @@ type BackendWorkItem = {
   title: string;
   description?: string | null;
   status: string;
-  owner?: string | null;
+  ownerGoogleId: string;
+  ownerEmail: string;
+  ownerName: string;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string | null;
@@ -124,7 +126,9 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
       status: item.status as PurchaseRequestStatus,
       priority: 2,
       requester: "Unassigned",
-      owner: item.owner ?? "Unassigned",
+      ownerGoogleId: item.ownerGoogleId,
+      ownerEmail: item.ownerEmail,
+      ownerName: item.ownerName,
       createdAt: new Date(item.createdAt).toISOString(),
       dueAt: undefined,
       deleted: Boolean(item.deletedAt),
@@ -143,7 +147,9 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
     status: item.status as TaskProjectStatus,
     priority: 2,
     requester: "Unassigned",
-    owner: item.owner ?? "Unassigned",
+    ownerGoogleId: item.ownerGoogleId,
+    ownerEmail: item.ownerEmail,
+    ownerName: item.ownerName,
     createdAt: new Date(item.createdAt).toISOString(),
     dueAt: undefined,
     deleted: Boolean(item.deletedAt),
@@ -259,7 +265,9 @@ export const workItemsApiService = {
       title: item.title,
       description: item.description,
       status: item.status,
-      owner: item.owner
+      ownerGoogleId: item.ownerGoogleId,
+      ownerEmail: item.ownerEmail,
+      ownerName: item.ownerName
     };
 
     const created = await apiFetch<BackendWorkItem>("/api/work-items", {
@@ -276,7 +284,9 @@ export const workItemsApiService = {
       ...(patch.title !== undefined ? { title: patch.title } : {}),
       ...(patch.description !== undefined ? { description: patch.description } : {}),
       ...(patch.status !== undefined ? { status: patch.status } : {}),
-      ...(patch.owner !== undefined ? { owner: patch.owner } : {})
+      ...(patch.ownerGoogleId !== undefined ? { ownerGoogleId: patch.ownerGoogleId } : {}),
+      ...(patch.ownerEmail !== undefined ? { ownerEmail: patch.ownerEmail } : {}),
+      ...(patch.ownerName !== undefined ? { ownerName: patch.ownerName } : {})
     };
 
     const updated = await apiFetch<BackendWorkItem>(`/api/work-items/${id}`, {
@@ -314,7 +324,7 @@ export const workItemsApiService = {
         q: query.trim(),
         type: apiType,
         status: filters.status,
-        owner: filters.owner,
+        ownerGoogleId: filters.ownerGoogleId,
         includeDeleted: filters.includeDeleted,
         limit: filters.limit ?? 50,
       },

@@ -30,7 +30,9 @@ model WorkItem {
   title       String
   description String?
   status      String
-  owner       String?
+  ownerGoogleId String
+  ownerEmail    String
+  ownerName     String
   createdBy   String?
   updatedBy   String?
   createdAt   DateTime        @default(now())
@@ -44,7 +46,8 @@ model WorkItem {
   @@index([updatedAt])
   @@index([type])
   @@index([status])
-  @@index([owner])
+  @@index([ownerGoogleId])
+  @@index([ownerEmail])
 }
 
 model Attachment {

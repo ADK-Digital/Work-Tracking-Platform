@@ -290,11 +290,11 @@ export const workItemsLocalService = {
           type: "status_changed",
           message: `Status changed from ${previous.status} to ${updated.status}`
         });
-      } else if (patch.owner !== undefined && patch.owner !== previous.owner) {
+      } else if (patch.ownerGoogleId !== undefined && patch.ownerGoogleId !== previous.ownerGoogleId) {
         recordActivity({
           workItemId: id,
           type: "owner_changed",
-          message: `Owner changed from ${previous.owner} to ${updated.owner}`
+          message: `Owner changed from ${previous.ownerName || previous.ownerEmail} to ${updated.ownerName || updated.ownerEmail}`
         });
       } else {
         recordActivity({
@@ -366,7 +366,7 @@ export const workItemsLocalService = {
           return false;
         }
 
-        if (filters.owner && item.owner !== filters.owner) {
+        if (filters.ownerGoogleId && item.ownerGoogleId !== filters.ownerGoogleId) {
           return false;
         }
 
@@ -383,7 +383,7 @@ export const workItemsLocalService = {
         if (includesInsensitive(item.title, q)) matchedFields.push("title");
         if (includesInsensitive(item.description, q)) matchedFields.push("description");
         if (includesInsensitive(item.status, q)) matchedFields.push("status");
-        if (includesInsensitive(item.owner, q)) matchedFields.push("owner");
+        if (includesInsensitive(item.ownerName, q) || includesInsensitive(item.ownerEmail, q)) matchedFields.push("owner");
         if (includesInsensitive(item.type, q)) matchedFields.push("type");
         if (uuidQuery && item.id.toLowerCase() === uuidQuery) matchedFields.push("id");
         if (dateQuery && item.createdAt.slice(0, 10) === dateQuery) matchedFields.push("createdAt");

@@ -21,7 +21,13 @@ export const TASK_PROJECT_STATUSES = [
 export type PurchaseRequestStatus = (typeof PURCHASE_REQUEST_STATUSES)[number];
 export type TaskProjectStatus = (typeof TASK_PROJECT_STATUSES)[number];
 
-interface WorkItemBase {
+export interface WorkItemOwner {
+  ownerGoogleId: string;
+  ownerEmail: string;
+  ownerName: string;
+}
+
+interface WorkItemBase extends WorkItemOwner {
   id: string;
   type: WorkItemType;
   title: string;
@@ -29,7 +35,6 @@ interface WorkItemBase {
   status: string;
   priority?: number;
   requester: string;
-  owner: string;
   createdAt: string;
   dueAt?: string;
   deleted: boolean;
@@ -67,7 +72,6 @@ export interface ActivityEvent {
   timestamp: string;
 }
 
-
 export interface Comment {
   id: string;
   workItemId: string;
@@ -78,8 +82,6 @@ export interface Comment {
   deletedAt?: string | null;
   deletedBy?: string | null;
 }
-
-
 
 export interface Attachment {
   id: string;
@@ -96,7 +98,7 @@ export interface Attachment {
 export interface SearchFilters {
   type?: WorkItemType;
   status?: string;
-  owner?: string;
+  ownerGoogleId?: string;
   includeDeleted?: boolean;
   limit?: number;
 }
@@ -123,8 +125,6 @@ export interface ActivitySearchResult {
   matchedFields: string[];
   snippet?: string;
 }
-
-
 
 export interface AttachmentSearchResult {
   kind: "attachment";

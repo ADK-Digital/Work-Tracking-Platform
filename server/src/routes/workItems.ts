@@ -2,7 +2,7 @@ import { ActivityEventType, Prisma, WorkItemType } from '@prisma/client';
 import { Router } from 'express';
 import { getUserRole, requireRole } from '../authorization';
 import { prisma } from '../db';
-import { isMember } from '../googleDirectory';
+import { listGroupMembers } from '../googleDirectory';
 import { resolveOwnerDirectoryGroup } from '../ownerDirectoryGroup';
 
 const workItemsRouter = Router();
@@ -12,6 +12,61 @@ const allowedTypes = new Set<string>(Object.values(WorkItemType));
 const MAX_COMMENT_LENGTH = 5000;
 
 const parseIncludeDeleted = (value: unknown): boolean => value === 'true';
+
+type OwnerFields = {
+  ownerGoogleId: string;
+  ownerEmail: string;
+  ownerName: string;
+};
+
+const parseOwnerFields = (body: Record<string, unknown>, mode: 'create' | 'patch'):
+  | { ok: true; value?: OwnerFields }
+  | { ok: false; error: string } => {
+  const ownerGoogleId = body.ownerGoogleId;
+  const ownerEmail = body.ownerEmail;
+  const ownerName = body.ownerName;
+
+  const anyProvided = ownerGoogleId !== undefined || ownerEmail !== undefined || ownerName !== undefined;
+
+  if (mode === 'create' && !anyProvided) {
+    return { ok: false, error: 'Owner is required.' };
+  }
+
+  if (mode === 'patch' && !anyProvided) {
+    return { ok: true };
+  }
+
+  if (ownerGoogleId === undefined || ownerEmail === undefined || ownerName === undefined) {
+    return { ok: false, error: 'Owner fields must be provided together.' };
+  }
+
+  if (typeof ownerGoogleId !== 'string' || typeof ownerEmail !== 'string' || typeof ownerName !== 'string') {
+    return { ok: false, error: 'Owner fields must be strings.' };
+  }
+
+  const normalized = {
+    ownerGoogleId: ownerGoogleId.trim(),
+    ownerEmail: ownerEmail.trim().toLowerCase(),
+    ownerName: ownerName.trim(),
+  };
+
+  if (!normalized.ownerGoogleId || !normalized.ownerEmail || !normalized.ownerName) {
+    return { ok: false, error: 'Owner fields must be non-empty.' };
+  }
+
+  return { ok: true, value: normalized };
+};
+
+const ownerLabel = (owner: Pick<OwnerFields, 'ownerName' | 'ownerEmail'>): string => owner.ownerName || owner.ownerEmail;
+
+const validateOwnerAgainstDirectory = async (owner: OwnerFields): Promise<boolean> => {
+  const members = await listGroupMembers(process.env.OWNER_DIRECTORY_GROUP?.trim() || 'cms-admins');
+  if (members === null || members.length === 0) {
+    return true;
+  }
+
+  return members.some((member) => member.googleId === owner.ownerGoogleId && member.email === owner.ownerEmail.toLowerCase());
+};
 
 
 const validateOwner = async (owner: string | null | undefined): Promise<boolean> => {
@@ -66,7 +121,9 @@ const serializeWorkItem = (workItem: {
   title: string;
   description: string | null;
   status: string;
-  owner: string | null;
+  ownerGoogleId: string;
+  ownerEmail: string;
+  ownerName: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -117,7 +174,7 @@ workItemsRouter.get('/search', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const type = typeof req.query.type === 'string' ? req.query.type : undefined;
   const status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
-  const owner = typeof req.query.owner === 'string' ? req.query.owner.trim() : undefined;
+  const ownerGoogleId = typeof req.query.ownerGoogleId === 'string' ? req.query.ownerGoogleId.trim() : undefined;
   const includeDeletedRequested = parseIncludeDeleted(req.query.includeDeleted);
   const includeDeleted = includeDeletedRequested && req.authz?.role === 'admin';
   const limit = parseLimit(req.query.limit);
@@ -141,7 +198,8 @@ workItemsRouter.get('/search', async (req, res) => {
       { title: { contains: q, mode: 'insensitive' } },
       { description: { contains: q, mode: 'insensitive' } },
       { status: { contains: q, mode: 'insensitive' } },
-      { owner: { contains: q, mode: 'insensitive' } },
+      { ownerName: { contains: q, mode: 'insensitive' } },
+      { ownerEmail: { contains: q, mode: 'insensitive' } },
       { createdBy: { contains: q, mode: 'insensitive' } },
       { updatedBy: { contains: q, mode: 'insensitive' } },
     );
@@ -164,7 +222,7 @@ workItemsRouter.get('/search', async (req, res) => {
   const workItemWhere: Prisma.WorkItemWhereInput = {
     ...(type ? { type: type as WorkItemType } : {}),
     ...(status ? { status } : {}),
-    ...(owner ? { owner } : {}),
+    ...(ownerGoogleId ? { ownerGoogleId } : {}),
     ...(includeDeleted ? {} : { deletedAt: null }),
     ...(hasQuery ? { OR: workItemQueryClauses } : {}),
   };
@@ -184,7 +242,7 @@ workItemsRouter.get('/search', async (req, res) => {
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
             ...(status ? { status } : {}),
-            ...(owner ? { owner } : {}),
+            ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
           OR: [
@@ -204,7 +262,7 @@ workItemsRouter.get('/search', async (req, res) => {
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
             ...(status ? { status } : {}),
-            ...(owner ? { owner } : {}),
+            ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
           OR: [
@@ -225,7 +283,7 @@ workItemsRouter.get('/search', async (req, res) => {
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
             ...(status ? { status } : {}),
-            ...(owner ? { owner } : {}),
+            ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
         },
@@ -239,7 +297,7 @@ workItemsRouter.get('/search', async (req, res) => {
     if (!hasQuery || item.title.toLowerCase().includes(normalizedQ)) matchedFields.push('title');
     if (item.description?.toLowerCase().includes(normalizedQ)) matchedFields.push('description');
     if (item.status.toLowerCase().includes(normalizedQ)) matchedFields.push('status');
-    if (item.owner?.toLowerCase().includes(normalizedQ)) matchedFields.push('owner');
+    if (item.ownerName.toLowerCase().includes(normalizedQ) || item.ownerEmail.toLowerCase().includes(normalizedQ)) matchedFields.push('owner');
     if (item.createdBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('createdBy');
     if (item.updatedBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('updatedBy');
     if (item.type.toLowerCase().includes(normalizedQ)) matchedFields.push('type');
@@ -327,13 +385,24 @@ workItemsRouter.get('/work-items/:id', async (req, res) => {
 
 workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const { type, title, description, status, owner } = req.body as {
+  const { type, title, description, status } = req.body as {
     type?: string;
     title?: string;
     description?: string | null;
     status?: string;
-    owner?: string | null;
   };
+  const ownerParsed = parseOwnerFields(req.body as Record<string, unknown>, 'create');
+  if (!ownerParsed.ok) {
+    return res.status(400).json({ error: ownerParsed.error });
+  }
+
+  if (!ownerParsed.value) {
+    return res.status(400).json({ error: 'Owner is required.' });
+  }
+
+  if (!(await validateOwnerAgainstDirectory(ownerParsed.value))) {
+    return res.status(400).json({ error: 'Selected owner is not in the owner directory.' });
+  }
 
   if (!type || !allowedTypes.has(type)) {
     return res.status(400).json({ error: 'Invalid type. Must be task or purchase_request.' });
@@ -357,7 +426,7 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
       title: title.trim(),
       description: description ?? null,
       status: status.trim(),
-      owner: owner ?? null,
+      ...ownerParsed.value,
       createdBy: actor,
       updatedBy: actor,
       activityEvents: {
@@ -382,13 +451,20 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     return res.status(404).json({ error: 'Work item not found.' });
   }
 
-  const { type, title, description, status, owner } = req.body as {
+  const { type, title, description, status } = req.body as {
     type?: string;
     title?: string;
     description?: string | null;
     status?: string;
-    owner?: string | null;
   };
+  const ownerParsed = parseOwnerFields(req.body as Record<string, unknown>, 'patch');
+  if (!ownerParsed.ok) {
+    return res.status(400).json({ error: ownerParsed.error });
+  }
+
+  if (ownerParsed.value && !(await validateOwnerAgainstDirectory(ownerParsed.value))) {
+    return res.status(400).json({ error: 'Selected owner is not in the owner directory.' });
+  }
 
   if (type !== undefined && !allowedTypes.has(type)) {
     return res.status(400).json({ error: 'Invalid type. Must be task or purchase_request.' });
@@ -411,7 +487,7 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     ...(title !== undefined ? { title: title.trim() } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(status !== undefined ? { status: status.trim() } : {}),
-    ...(owner !== undefined ? { owner } : {}),
+    ...(ownerParsed.value ? ownerParsed.value : {}),
   };
 
   if (Object.keys(data).length > 0) {
@@ -427,10 +503,10 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     });
   }
 
-  if (owner !== undefined && owner !== existing.owner) {
+  if (ownerParsed.value && ownerParsed.value.ownerGoogleId !== existing.ownerGoogleId) {
     events.push({
       type: ActivityEventType.owner_changed,
-      message: `Owner changed: ${existing.owner ?? 'unassigned'} -> ${owner ?? 'unassigned'}`,
+      message: `Owner changed: ${ownerLabel(existing)} -> ${ownerLabel(ownerParsed.value)}`,
     });
   }
 

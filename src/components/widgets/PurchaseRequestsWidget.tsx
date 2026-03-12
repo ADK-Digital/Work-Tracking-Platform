@@ -7,6 +7,7 @@ import {
   type SortOption
 } from "../../types/workItem";
 import { workItemsService } from "../../services/workItemsService";
+import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../../services/ownerDirectoryService";
 import { WidgetCard } from "./WidgetCard";
 import { Select } from "../ui/Select";
 import { Button } from "../ui/Button";
@@ -16,14 +17,15 @@ import { Input } from "../ui/Input";
 import { formatDate } from "../../utils/dates";
 import { useToast } from "../ui/Toast";
 import type { OwnerIdentity } from "../../utils/ownerMatching";
-import { ownerStringMatchesIdentity } from "../../utils/ownerMatching";
+import { workItemMatchesOwnerIdentity } from "../../utils/ownerMatching";
+import { formatOwnerLabel } from "../../utils/owners";
 
 type Filter = "all" | "open" | "closed" | string;
 
 type FormState = {
   title: string;
   requester: string;
-  owner: string;
+  ownerGoogleId: string;
   status: PurchaseRequestStatus;
   vendor: string;
   amount: string;
@@ -35,7 +37,7 @@ type FormState = {
 const defaultForm: FormState = {
   title: "",
   requester: "",
-  owner: "",
+  ownerGoogleId: "",
   status: "New",
   vendor: "",
   amount: "",
@@ -44,7 +46,6 @@ const defaultForm: FormState = {
   description: ""
 };
 
-const owners = ["Alex Kim", "Morgan Lee", "Chris Nguyen", "Taylor Gray"];
 
 export const PurchaseRequestsWidget = ({
   resetSignal,
@@ -68,6 +69,7 @@ export const PurchaseRequestsWidget = ({
   const [form, setForm] = useState<FormState>(defaultForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
+  const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
 
   const loadItems = async () => {
     setLoading(true);
@@ -90,6 +92,15 @@ export const PurchaseRequestsWidget = ({
     void loadItems();
   }, [filter, sort, resetSignal, includeDeleted]);
 
+  useEffect(() => {
+    const loadOwners = async () => {
+      const response = await loadOwnerDirectory();
+      setOwnerOptions(response.owners);
+    };
+
+    void loadOwners();
+  }, []);
+
   const filterOptions = useMemo(
     () => [
       { label: "All", value: "all" },
@@ -105,7 +116,7 @@ export const PurchaseRequestsWidget = ({
       return items;
     }
 
-    return items.filter((item) => ownerStringMatchesIdentity(item.owner, selectedOwnerIdentity));
+    return items.filter((item) => workItemMatchesOwnerIdentity(item, selectedOwnerIdentity));
   }, [items, selectedOwnerIdentity]);
 
   const openCreate = () => {
@@ -121,7 +132,7 @@ export const PurchaseRequestsWidget = ({
     setForm({
       title: item.title,
       requester: item.requester,
-      owner: item.owner,
+      ownerGoogleId: item.ownerGoogleId,
       status: item.status,
       vendor: item.vendor,
       amount: String(item.amount),
@@ -136,7 +147,7 @@ export const PurchaseRequestsWidget = ({
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.title.trim()) nextErrors.title = "Title is required";
     if (!form.requester.trim()) nextErrors.requester = "Requester is required";
-    if (!form.owner.trim()) nextErrors.owner = "Owner is required";
+    if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
     if (!form.vendor.trim()) nextErrors.vendor = "Vendor is required";
     if (!form.budgetCode.trim()) nextErrors.budgetCode = "Budget code is required";
     if (!form.amount || Number.isNaN(Number(form.amount)) || Number(form.amount) <= 0) {
@@ -150,11 +161,19 @@ export const PurchaseRequestsWidget = ({
   const submit = async () => {
     if (!validate()) return;
 
+    const selectedOwner = ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId);
+    if (!selectedOwner) {
+      setErrors((prev) => ({ ...prev, ownerGoogleId: "Owner is required" }));
+      return;
+    }
+
     const payload = {
       type: "purchase_request" as const,
       title: form.title.trim(),
       requester: form.requester.trim(),
-      owner: form.owner.trim(),
+      ownerGoogleId: selectedOwner.googleId,
+      ownerEmail: selectedOwner.email,
+      ownerName: selectedOwner.displayName,
       status: form.status as PurchaseRequestStatus,
       vendor: form.vendor.trim(),
       amount: Number(form.amount),
@@ -239,7 +258,7 @@ export const PurchaseRequestsWidget = ({
                       {item.title}
                     </Link>
                     <p className="text-xs text-slate-500">
-                      {item.vendor} • ${item.amount.toLocaleString()} • Created {formatDate(item.createdAt)}
+                      {item.vendor} • ${item.amount.toLocaleString()} • Owner {formatOwnerLabel(item)} • Created {formatDate(item.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -255,10 +274,14 @@ export const PurchaseRequestsWidget = ({
                     onChange={(e) => void updateInline(item.id, { status: e.target.value as PurchaseRequestStatus })}
                   />
                   <Select
-                    options={owners.map((owner) => ({ label: owner, value: owner }))}
-                    value={item.owner}
+                    options={ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))}
+                    value={item.ownerGoogleId}
                     disabled={!canManage}
-                    onChange={(e) => void updateInline(item.id, { owner: e.target.value })}
+                    onChange={(e) => {
+                      const nextOwner = ownerOptions.find((owner) => owner.googleId === e.target.value);
+                      if (!nextOwner) return;
+                      void updateInline(item.id, { ownerGoogleId: nextOwner.googleId, ownerEmail: nextOwner.email, ownerName: nextOwner.displayName });
+                    }}
                   />
                   <Button variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
                     Edit
@@ -287,7 +310,7 @@ export const PurchaseRequestsWidget = ({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
-          <Input label="Owner" value={form.owner} error={errors.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={PURCHASE_REQUEST_STATUSES.map((status) => ({ label: status, value: status }))} onChange={(e) => setForm({ ...form, status: e.target.value as PurchaseRequestStatus })} />
           <Input label="Vendor" value={form.vendor} error={errors.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
           <Input label="Amount" value={form.amount} error={errors.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />

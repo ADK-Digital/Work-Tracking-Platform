@@ -15,6 +15,8 @@ import { Modal } from "../ui/Modal";
 import { Input } from "../ui/Input";
 import { formatDate } from "../../utils/dates";
 import { useToast } from "../ui/Toast";
+import type { OwnerIdentity } from "../../utils/ownerMatching";
+import { ownerStringMatchesIdentity } from "../../utils/ownerMatching";
 
 type Filter = "all" | "open" | "closed" | string;
 
@@ -44,12 +46,14 @@ export const TasksWidget = ({
   resetSignal,
   canManage,
   includeDeleted = false,
-  canRestore = false
+  canRestore = false,
+  selectedOwnerIdentity = null
 }: {
   resetSignal: number;
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
+  selectedOwnerIdentity?: OwnerIdentity | null;
 }) => {
   const [items, setItems] = useState<TaskProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +90,15 @@ export const TasksWidget = ({
     ],
     []
   );
+
+
+  const visibleItems = useMemo(() => {
+    if (!selectedOwnerIdentity) {
+      return items;
+    }
+
+    return items.filter((item) => ownerStringMatchesIdentity(item.owner, selectedOwnerIdentity));
+  }, [items, selectedOwnerIdentity]);
 
   const openCreate = () => {
     setEditing(null);
@@ -195,11 +208,11 @@ export const TasksWidget = ({
               <div key={idx} className="h-12 animate-pulse rounded bg-slate-100" />
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">No items match your filters</p>
         ) : (
           <div className="space-y-3">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <div key={item.id} className="rounded-lg border border-slate-200 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>

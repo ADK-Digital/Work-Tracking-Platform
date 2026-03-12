@@ -5,14 +5,18 @@ import { PurchaseRequestsWidget } from "../components/widgets/PurchaseRequestsWi
 import { TasksWidget } from "../components/widgets/TasksWidget";
 import { ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
+import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
 import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult } from "../types/workItem";
+import type { OwnerIdentity } from "../utils/ownerMatching";
 
 interface DashboardProps {
   onReset: () => void;
   resetting: boolean;
   resetSignal: number;
 }
+
+type DashboardOwnerFilter = "me" | "all" | string;
 
 export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) => {
   const [apiError, setApiError] = useState<string | null>(null);
@@ -28,6 +32,10 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const [results, setResults] = useState<SearchResult[]>([]);
   const [owners, setOwners] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
+  const [dashboardOwnerFilter, setDashboardOwnerFilter] = useState<DashboardOwnerFilter>("me");
+  const [directoryOwners, setDirectoryOwners] = useState<OwnerDirectoryEntry[]>([]);
+  const [ownerDirectoryLoading, setOwnerDirectoryLoading] = useState(false);
+  const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
 
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
   const canUseDeletedFeatures = isApiModeEnabled && authUser?.role === "admin";
@@ -48,6 +56,21 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       }
 
       console.error(error);
+    }
+  };
+
+  const loadDirectory = async () => {
+    setOwnerDirectoryLoading(true);
+    try {
+      const response = await loadOwnerDirectory();
+      setDirectoryOwners(response.owners);
+      setOwnerDirectoryError(null);
+    } catch (error) {
+      console.error(error);
+      setDirectoryOwners([]);
+      setOwnerDirectoryError("Owner directory is unavailable; owner filter will be limited.");
+    } finally {
+      setOwnerDirectoryLoading(false);
     }
   };
 
@@ -84,6 +107,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
 
   useEffect(() => {
     void loadMe();
+    void loadDirectory();
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -136,6 +160,70 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
     const allStatuses = [...PURCHASE_REQUEST_STATUSES, ...TASK_PROJECT_STATUSES];
     return ["all", ...new Set(allStatuses)];
   }, []);
+
+  const currentOwnerDirectoryEntry = useMemo(() => {
+    if (!authUser?.googleId) {
+      return null;
+    }
+
+    return directoryOwners.find((owner) => owner.googleId === authUser.googleId) ?? null;
+  }, [authUser?.googleId, directoryOwners]);
+
+  const ownerFilterOptions = useMemo(() => {
+    const options: Array<{ label: string; value: string }> = [
+      { label: "Me", value: "me" },
+      { label: "All", value: "all" },
+    ];
+
+    for (const owner of directoryOwners) {
+      const isCurrentUser = currentOwnerDirectoryEntry?.googleId === owner.googleId;
+      options.push({
+        value: owner.googleId,
+        label: isCurrentUser ? `${owner.displayName} (You)` : owner.displayName,
+      });
+    }
+
+    return options;
+  }, [currentOwnerDirectoryEntry?.googleId, directoryOwners]);
+
+  const selectedOwnerIdentity = useMemo<OwnerIdentity | null>(() => {
+    if (dashboardOwnerFilter === "all") {
+      return null;
+    }
+
+    if (dashboardOwnerFilter === "me") {
+      if (currentOwnerDirectoryEntry) {
+        return {
+          googleId: currentOwnerDirectoryEntry.googleId,
+          email: currentOwnerDirectoryEntry.email,
+          displayName: currentOwnerDirectoryEntry.displayName,
+          name: authUser?.name,
+        };
+      }
+
+      if (authUser) {
+        return {
+          googleId: authUser.googleId,
+          email: authUser.email,
+          displayName: authUser.displayName,
+          name: authUser.name,
+        };
+      }
+
+      return null;
+    }
+
+    const selectedOwner = directoryOwners.find((owner) => owner.googleId === dashboardOwnerFilter);
+    if (!selectedOwner) {
+      return null;
+    }
+
+    return {
+      googleId: selectedOwner.googleId,
+      email: selectedOwner.email,
+      displayName: selectedOwner.displayName,
+    };
+  }, [authUser, currentOwnerDirectoryEntry, dashboardOwnerFilter, directoryOwners]);
 
   return (
     <AppShell
@@ -253,20 +341,43 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       ) : null}
 
       {!searchingViewEnabled ? (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <PurchaseRequestsWidget
-            resetSignal={resetSignal}
-            canManage={canManage}
-            includeDeleted={showDeleted}
-            canRestore={canUseDeletedFeatures}
-          />
-          <TasksWidget
-            resetSignal={resetSignal}
-            canManage={canManage}
-            includeDeleted={showDeleted}
-            canRestore={canUseDeletedFeatures}
-          />
-        </div>
+        <>
+          <section className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Dashboard Owner</span>
+                <select
+                  value={dashboardOwnerFilter}
+                  onChange={(event) => setDashboardOwnerFilter(event.target.value)}
+                  className="min-w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  disabled={ownerDirectoryLoading}
+                >
+                  {ownerFilterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+              {ownerDirectoryLoading ? <p className="text-sm text-slate-500">Loading owners…</p> : null}
+              {ownerDirectoryError ? <p className="text-sm text-amber-700">{ownerDirectoryError}</p> : null}
+            </div>
+          </section>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <PurchaseRequestsWidget
+              resetSignal={resetSignal}
+              canManage={canManage}
+              includeDeleted={showDeleted}
+              canRestore={canUseDeletedFeatures}
+              selectedOwnerIdentity={selectedOwnerIdentity}
+            />
+            <TasksWidget
+              resetSignal={resetSignal}
+              canManage={canManage}
+              includeDeleted={showDeleted}
+              canRestore={canUseDeletedFeatures}
+              selectedOwnerIdentity={selectedOwnerIdentity}
+            />
+          </div>
+        </>
       ) : null}
     </AppShell>
   );

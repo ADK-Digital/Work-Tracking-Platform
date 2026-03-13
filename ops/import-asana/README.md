@@ -1,10 +1,12 @@
 # Asana CSV Import
 
-This folder contains the Asana import script for validating CSV exports and importing them into the BSCSD Project Manager database.
+> ⚠️ This was a one-time migration script, it has already been run successfully, and it should not be run again.
+
+This folder contains the archived one-time Asana migration script that was used to import CSV exports into the BSCSD Project Manager database.
 
 ## Script
 
-- `import-asana-dry-run.ts`
+- `archive/import-asana-2026-asana-migration.ts` (archived; do not run)
 
 ## What it does
 
@@ -36,14 +38,14 @@ From the repository root:
 
 ```bash
 cd /workspace/bscsd-pm
-npx tsx ops/import-asana/import-asana-dry-run.ts
+npx tsx ops/import-asana/archive/import-asana-2026-asana-migration.ts
 ```
 
-Execute mode:
+Execute mode (historical reference only; do not run again):
 
 ```bash
 cd /workspace/bscsd-pm
-npx tsx ops/import-asana/import-asana-dry-run.ts --execute
+npx tsx ops/import-asana/archive/import-asana-2026-asana-migration.ts --execute
 ```
 
 Notes:

@@ -60,12 +60,30 @@ const parseOwnerFields = (body: Record<string, unknown>, mode: 'create' | 'patch
 const ownerLabel = (owner: Pick<OwnerFields, 'ownerName' | 'ownerEmail'>): string => owner.ownerName || owner.ownerEmail;
 
 const validateOwnerAgainstDirectory = async (owner: OwnerFields): Promise<boolean> => {
-  const members = await listGroupMembers(process.env.OWNER_DIRECTORY_GROUP?.trim() || 'cms-admins');
+  const members = await listGroupMembers(resolveOwnerDirectoryGroup());
   if (members === null || members.length === 0) {
     return true;
   }
 
   return members.some((member) => member.googleId === owner.ownerGoogleId && member.email === owner.ownerEmail.toLowerCase());
+};
+
+
+const normalizeProjectName = (value: unknown): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 };
 
 const parseLimit = (value: unknown): number => {
@@ -110,6 +128,7 @@ const serializeWorkItem = (workItem: {
   title: string;
   description: string | null;
   status: string;
+  projectName: string | null;
   ownerGoogleId: string;
   ownerEmail: string;
   ownerName: string;
@@ -374,11 +393,12 @@ workItemsRouter.get('/work-items/:id', async (req, res) => {
 
 workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
-  const { type, title, description, status } = req.body as {
+  const { type, title, description, status, projectName } = req.body as {
     type?: string;
     title?: string;
     description?: string | null;
     status?: string;
+    projectName?: string | null;
   };
   const ownerParsed = parseOwnerFields(req.body as Record<string, unknown>, 'create');
   if (!ownerParsed.ok) {
@@ -405,12 +425,19 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
     return res.status(400).json({ error: 'Status is required.' });
   }
 
+  if (projectName !== undefined && projectName !== null && typeof projectName !== 'string') {
+    return res.status(400).json({ error: 'Project name must be a string when provided.' });
+  }
+
+  const normalizedProjectName = normalizeProjectName(projectName);
+
   const item = await prisma.workItem.create({
     data: {
       type: type as WorkItemType,
       title: title.trim(),
       description: description ?? null,
       status: status.trim(),
+      projectName: type === WorkItemType.task ? (normalizedProjectName ?? null) : null,
       ...ownerParsed.value,
       createdBy: actor,
       updatedBy: actor,
@@ -436,11 +463,12 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     return res.status(404).json({ error: 'Work item not found.' });
   }
 
-  const { type, title, description, status } = req.body as {
+  const { type, title, description, status, projectName } = req.body as {
     type?: string;
     title?: string;
     description?: string | null;
     status?: string;
+    projectName?: string | null;
   };
   const ownerParsed = parseOwnerFields(req.body as Record<string, unknown>, 'patch');
   if (!ownerParsed.ok) {
@@ -463,11 +491,21 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     return res.status(400).json({ error: 'Status must be non-empty.' });
   }
 
+  if (projectName !== undefined && projectName !== null && typeof projectName !== 'string') {
+    return res.status(400).json({ error: 'Project name must be a string when provided.' });
+  }
+
+  const normalizedPatchProjectName = normalizeProjectName(projectName);
+  const nextType = (type as WorkItemType | undefined) ?? existing.type;
+
   const data: Prisma.WorkItemUpdateInput = {
     ...(type !== undefined ? { type: type as WorkItemType } : {}),
     ...(title !== undefined ? { title: title.trim() } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(status !== undefined ? { status: status.trim() } : {}),
+    ...(projectName !== undefined || (type !== undefined && (type as WorkItemType) === WorkItemType.purchase_request)
+      ? { projectName: nextType === WorkItemType.task ? (normalizedPatchProjectName ?? null) : null }
+      : {}),
     ...(ownerParsed.value ? ownerParsed.value : {}),
   };
 

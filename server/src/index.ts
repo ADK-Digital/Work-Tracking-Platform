@@ -11,6 +11,7 @@ import healthRouter from './routes/health';
 import attachmentsRouter from './routes/attachments';
 import workItemsRouter from './routes/workItems';
 import ownersRouter from './routes/owners';
+import taskProjectOptionsRouter from './routes/taskProjectOptions';
 
 dotenv.config();
 
@@ -205,6 +206,7 @@ app.get('/api/me', async (req, res, next) => {
   }
 });
 app.use('/api', ownersRouter);
+app.use('/api', taskProjectOptionsRouter);
 app.use('/api', workItemsRouter);
 app.use('/api', attachmentsRouter);
 

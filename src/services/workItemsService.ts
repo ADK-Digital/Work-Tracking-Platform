@@ -74,6 +74,29 @@ export const workItemsService = {
       throw error;
     }
   },
+
+  async listTaskProjectOptions(...args: Parameters<typeof baseService.listTaskProjectOptions>) {
+    try {
+      return await baseService.listTaskProjectOptions(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+  async createTaskProjectOption(...args: Parameters<typeof baseService.createTaskProjectOption>) {
+    try {
+      return await baseService.createTaskProjectOption(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
   async listAttachments(...args: Parameters<typeof baseService.listAttachments>) {
     try {
       return await baseService.listAttachments(...args);

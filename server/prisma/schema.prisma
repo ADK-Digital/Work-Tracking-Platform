@@ -30,6 +30,7 @@ model WorkItem {
   title       String
   description String?
   status      String
+  projectName String?
   ownerGoogleId String
   ownerEmail    String
   ownerName     String
@@ -46,8 +47,14 @@ model WorkItem {
   @@index([updatedAt])
   @@index([type])
   @@index([status])
+  @@index([projectName])
   @@index([ownerGoogleId])
   @@index([ownerEmail])
+}
+
+model TaskProjectOption {
+  id   String @id @default(uuid())
+  name String @unique
 }
 
 model Attachment {

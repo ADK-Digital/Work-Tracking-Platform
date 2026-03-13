@@ -54,6 +54,12 @@ export interface TaskProjectItem extends WorkItemBase {
   status: TaskProjectStatus;
   category: "downtime" | "project";
   tags?: string[];
+  projectName?: string;
+}
+
+export interface TaskProjectOption {
+  id: string;
+  name: string;
 }
 
 export type WorkItem = PurchaseRequestItem | TaskProjectItem;

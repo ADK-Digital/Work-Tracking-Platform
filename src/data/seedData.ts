@@ -138,6 +138,7 @@ export const seedWorkItems: WorkItem[] = [
     ownerName: "Avery Tran",
     category: "project",
     tags: ["erp", "launch"],
+    projectName: "ERP Modernization",
     createdAt: daysAgo(1),
     deleted: false
   },
@@ -152,6 +153,7 @@ export const seedWorkItems: WorkItem[] = [
     ownerName: "Noah Diaz",
     category: "downtime",
     tags: ["facility", "urgent"],
+    projectName: "Warehouse Reliability",
     createdAt: daysAgo(2),
     deleted: false
   },
@@ -166,6 +168,7 @@ export const seedWorkItems: WorkItem[] = [
     ownerName: "Avery Tran",
     category: "project",
     tags: ["wms", "automation"],
+    projectName: "Warehouse Reliability",
     createdAt: daysAgo(4),
     deleted: false
   },
@@ -220,6 +223,7 @@ export const seedWorkItems: WorkItem[] = [
     ownerEmail: "kira.james@example.org",
     ownerName: "Kira James",
     category: "project",
+    projectName: "Returns Redesign",
     createdAt: daysAgo(8),
     deleted: false
   },

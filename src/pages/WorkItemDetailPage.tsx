@@ -18,7 +18,8 @@ import {
   type Attachment,
   type PurchaseRequestItem,
   type TaskProjectItem,
-  type WorkItem
+  type WorkItem,
+  type TaskProjectOption
 } from "../types/workItem";
 import { formatDate, formatDateTime } from "../utils/dates";
 import { formatOwnerLabel } from "../utils/owners";
@@ -33,6 +34,8 @@ type FormState = {
   description: string;
   status: WorkItem["status"];
   ownerGoogleId: string;
+  projectName: string;
+  newProjectName: string;
 };
 
 export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPageProps) => {
@@ -50,8 +53,9 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [editOpen, setEditOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", ownerGoogleId: "" });
+  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", ownerGoogleId: "", projectName: "", newProjectName: "" });
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
+  const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
@@ -121,6 +125,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
     void loadMe();
     void loadOwnerDirectory().then((response) => setOwnerOptions(response.owners)).catch(() => setOwnerOptions([]));
+    void workItemsService.listTaskProjectOptions().then(setProjectOptions).catch(() => setProjectOptions([]));
 
     const handleForbidden = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -217,7 +222,9 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
       title: item.title,
       description: item.description ?? "",
       status: item.status,
-      ownerGoogleId: item.ownerGoogleId
+      ownerGoogleId: item.ownerGoogleId,
+      projectName: item.type === "task_project" ? item.projectName ?? "" : "",
+      newProjectName: "",
     });
     setEditOpen(true);
   };
@@ -228,14 +235,30 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.title.trim()) nextErrors.title = "Title is required";
     if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
+    if (item.type === "task_project" && form.projectName === "__add_new_project__" && !form.newProjectName.trim()) {
+      nextErrors.newProjectName = "Project name is required";
+    }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+
+    let resolvedProjectName: string | undefined;
+    if (item.type === "task_project") {
+      if (form.projectName === "__add_new_project__") {
+        const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
+        resolvedProjectName = created.name;
+        const options = await workItemsService.listTaskProjectOptions();
+        setProjectOptions(options);
+      } else {
+        resolvedProjectName = form.projectName.trim() || undefined;
+      }
+    }
 
     await workItemsService.updateWorkItem(item.id, {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       status: form.status as WorkItem["status"],
+      ...(item.type === "task_project" ? { projectName: resolvedProjectName } : {}),
       ...(ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)
         ? {
             ownerGoogleId: form.ownerGoogleId,
@@ -322,12 +345,18 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
                   </div>
                 </>
               ) : (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category</p>
-                  <p className="mt-1 text-sm text-slate-800">
-                    {(item as TaskProjectItem).category === "downtime" ? "Downtime" : "Project"}
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category</p>
+                    <p className="mt-1 text-sm text-slate-800">
+                      {(item as TaskProjectItem).category === "downtime" ? "Downtime" : "Project"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Project</p>
+                    <p className="mt-1 text-sm text-slate-800">{(item as TaskProjectItem).projectName || "No Project"}</p>
+                  </div>
+                </>
               )}
               {item.description ? (
                 <div className="md:col-span-2">
@@ -510,6 +539,28 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             disabled={!canManage}
             onChange={(e) => setForm({ ...form, status: e.target.value as WorkItem["status"] })}
           />
+          {item?.type === "task_project" ? (
+            <>
+              <Select
+                label="Project"
+                value={form.projectName}
+                options={[
+                  { label: "No Project", value: "" },
+                  ...projectOptions.map((option) => ({ label: option.name, value: option.name })),
+                  { label: "Add New...", value: "__add_new_project__" },
+                ]}
+                onChange={(e) => setForm({ ...form, projectName: e.target.value, newProjectName: e.target.value === "__add_new_project__" ? form.newProjectName : "" })}
+              />
+              {form.projectName === "__add_new_project__" ? (
+                <Input
+                  label="New Project Name"
+                  value={form.newProjectName}
+                  error={errors.newProjectName}
+                  onChange={(e) => setForm({ ...form, newProjectName: e.target.value })}
+                />
+              ) : null}
+            </>
+          ) : null}
           <label className="block text-sm md:col-span-2">
             <span className="mb-1 block font-medium text-slate-700">Description (Optional)</span>
             <textarea

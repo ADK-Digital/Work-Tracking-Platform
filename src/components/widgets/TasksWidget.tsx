@@ -56,6 +56,7 @@ export const TasksWidget = ({
   canRestore = false,
   selectedOwnerIdentity = null,
   projectFilter = "all",
+  onProjectOptionsRefresh,
 }: {
   resetSignal: number;
   canManage: boolean;
@@ -63,6 +64,7 @@ export const TasksWidget = ({
   canRestore?: boolean;
   selectedOwnerIdentity?: OwnerIdentity | null;
   projectFilter?: "all" | "none" | string;
+  onProjectOptionsRefresh?: () => Promise<void> | void;
 }) => {
   const [items, setItems] = useState<TaskProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,6 +175,7 @@ export const TasksWidget = ({
       const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
       const updatedOptions = await workItemsService.listTaskProjectOptions();
       setProjectOptions(updatedOptions);
+      await onProjectOptionsRefresh?.();
       return created.name;
     }
 

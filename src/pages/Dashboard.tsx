@@ -75,6 +75,15 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
     }
   };
 
+  const loadProjectOptions = async () => {
+    try {
+      const options = await workItemsService.listTaskProjectOptions();
+      setProjectOptions(options);
+    } catch {
+      setProjectOptions([]);
+    }
+  };
+
   const signOut = async () => {
     await apiFetch<void>("/auth/logout", { method: "POST" });
     setAuthUser(null);
@@ -109,7 +118,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   useEffect(() => {
     void loadMe();
     void loadDirectory();
-    void workItemsService.listTaskProjectOptions().then(setProjectOptions).catch(() => setProjectOptions([]));
+    void loadProjectOptions();
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -372,6 +381,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}
               projectFilter={projectFilter}
+              onProjectOptionsRefresh={loadProjectOptions}
             />
           </div>
         </>

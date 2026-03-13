@@ -1,6 +1,6 @@
-# Asana CSV Dry-Run Import
+# Asana CSV Import
 
-This folder contains a dry-run import script for validating Asana CSV exports against the BSCSD Project Manager schema.
+This folder contains the Asana import script for validating CSV exports and importing them into the BSCSD Project Manager database.
 
 ## Script
 
@@ -14,11 +14,21 @@ This folder contains a dry-run import script for validating Asana CSV exports ag
   - `Task_Tracking.csv`
   - `Team_Coordination_&_Tasks.csv`
 - Skips rows where `Completed At` is populated.
-- Maps fields into in-memory `WorkItem` payloads and corresponding `ActivityEvent` payloads.
-- Validates owners against the same Google Directory/mock owner source used by the app.
-- Reports task `projectName` values that would need to be created in `TaskProjectOption`.
-- Prints summary counts, skipped rows, and mapped owners.
-- Does **not** write anything to the database.
+- Applies ownership rules:
+  - Purchase requests always map to `jlamora@bscsd.org`.
+  - Tasks with blank `Assignee Email` fall back to `aperuzzi@bscsd.org` and append `Imported from Asana without an assignee.` to the description.
+- Resolves owners against the same Google Directory/mock owner source used by the app.
+- Ensures task `projectName` values are persisted and that required `TaskProjectOption` values exist.
+- Creates one `ActivityEvent` (`type=created`, `message="Imported from Asana"`, `actor="asana-import"`) for each imported work item.
+
+## Safety flag
+
+The script requires `--execute` to perform database writes.
+
+- Without `--execute`: dry run only (no writes).
+- With `--execute`: writes to the database.
+
+The script always prints an `About to import X records` line before write execution.
 
 ## Run locally on the server
 
@@ -27,6 +37,13 @@ From the repository root:
 ```bash
 cd /workspace/bscsd-pm
 npx tsx ops/import-asana/import-asana-dry-run.ts
+```
+
+Execute mode:
+
+```bash
+cd /workspace/bscsd-pm
+npx tsx ops/import-asana/import-asana-dry-run.ts --execute
 ```
 
 Notes:

@@ -7,7 +7,7 @@ import { ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
-import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult } from "../types/workItem";
+import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectOption } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 
 interface DashboardProps {
@@ -35,6 +35,8 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const [directoryOwners, setDirectoryOwners] = useState<OwnerDirectoryEntry[]>([]);
   const [ownerDirectoryLoading, setOwnerDirectoryLoading] = useState(false);
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
+  const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
 
   const canManage = !isApiModeEnabled || authUser?.role === "admin";
   const canUseDeletedFeatures = isApiModeEnabled && authUser?.role === "admin";
@@ -107,6 +109,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   useEffect(() => {
     void loadMe();
     void loadDirectory();
+    void workItemsService.listTaskProjectOptions().then(setProjectOptions).catch(() => setProjectOptions([]));
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -338,6 +341,20 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
               </label>
               {ownerDirectoryLoading ? <p className="text-sm text-slate-500">Loading owners…</p> : null}
               {ownerDirectoryError ? <p className="text-sm text-amber-700">{ownerDirectoryError}</p> : null}
+              <label className="text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Tasks Project</span>
+                <select
+                  value={projectFilter}
+                  onChange={(event) => setProjectFilter(event.target.value)}
+                  className="min-w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="none">No Project</option>
+                  {projectOptions.map((option) => (
+                    <option key={option.id} value={option.name}>{option.name}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </section>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -354,6 +371,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
               includeDeleted={showDeleted}
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}
+              projectFilter={projectFilter}
             />
           </div>
         </>

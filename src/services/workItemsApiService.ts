@@ -10,7 +10,8 @@ import type {
   WorkItem,
   SearchFilters,
   SearchResult,
-  Attachment
+  Attachment,
+  TaskProjectOption
 } from "../types/workItem";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -41,6 +42,7 @@ type BackendWorkItem = {
   title: string;
   description?: string | null;
   status: string;
+  projectName?: string | null;
   ownerGoogleId: string;
   ownerEmail: string;
   ownerName: string;
@@ -154,7 +156,8 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
     dueAt: undefined,
     deleted: Boolean(item.deletedAt),
     category: "project",
-    tags: []
+    tags: [],
+    projectName: item.projectName ?? undefined
   };
 };
 
@@ -245,6 +248,18 @@ export const workItemsApiService = {
     return Promise.resolve();
   },
 
+
+  async listTaskProjectOptions(): Promise<TaskProjectOption[]> {
+    return apiFetch<TaskProjectOption[]>("/api/task-project-options");
+  },
+
+  async createTaskProjectOption(name: string): Promise<TaskProjectOption> {
+    return apiFetch<TaskProjectOption>("/api/task-project-options", {
+      method: "POST",
+      body: JSON.stringify({ name })
+    });
+  },
+
   async getWorkItemById(id: string, options?: { includeDeleted?: boolean }): Promise<WorkItem | null> {
     try {
       const item = await apiFetch<BackendWorkItem>(`/api/work-items/${id}`);
@@ -267,7 +282,8 @@ export const workItemsApiService = {
       status: item.status,
       ownerGoogleId: item.ownerGoogleId,
       ownerEmail: item.ownerEmail,
-      ownerName: item.ownerName
+      ownerName: item.ownerName,
+      ...(item.type === "task_project" ? { projectName: item.projectName } : {})
     };
 
     const created = await apiFetch<BackendWorkItem>("/api/work-items", {
@@ -286,7 +302,10 @@ export const workItemsApiService = {
       ...(patch.status !== undefined ? { status: patch.status } : {}),
       ...(patch.ownerGoogleId !== undefined ? { ownerGoogleId: patch.ownerGoogleId } : {}),
       ...(patch.ownerEmail !== undefined ? { ownerEmail: patch.ownerEmail } : {}),
-      ...(patch.ownerName !== undefined ? { ownerName: patch.ownerName } : {})
+      ...(patch.ownerName !== undefined ? { ownerName: patch.ownerName } : {}),
+      ...(((patch as Partial<Extract<WorkItem, { type: "task_project" }>>).projectName !== undefined || patch.type === "task_project")
+        ? { projectName: (patch as Partial<Extract<WorkItem, { type: "task_project" }>>).projectName ?? null }
+        : {})
     };
 
     const updated = await apiFetch<BackendWorkItem>(`/api/work-items/${id}`, {

@@ -4,7 +4,8 @@ import {
   TASK_PROJECT_STATUSES,
   type SortOption,
   type TaskProjectItem,
-  type TaskProjectStatus
+  type TaskProjectStatus,
+  type TaskProjectOption,
 } from "../../types/workItem";
 import { workItemsService } from "../../services/workItemsService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../../services/ownerDirectoryService";
@@ -22,6 +23,8 @@ import { formatOwnerLabel } from "../../utils/owners";
 
 type Filter = "all" | "open" | "closed" | string;
 
+const ADD_NEW_OPTION_VALUE = "__add_new_project__";
+
 type FormState = {
   title: string;
   requester: string;
@@ -30,6 +33,8 @@ type FormState = {
   category: "downtime" | "project";
   tags: string;
   description: string;
+  projectName: string;
+  newProjectName: string;
 };
 
 const defaultForm: FormState = {
@@ -39,22 +44,25 @@ const defaultForm: FormState = {
   status: "Backlog",
   category: "project",
   tags: "",
-  description: ""
+  description: "",
+  projectName: "",
+  newProjectName: "",
 };
-
 
 export const TasksWidget = ({
   resetSignal,
   canManage,
   includeDeleted = false,
   canRestore = false,
-  selectedOwnerIdentity = null
+  selectedOwnerIdentity = null,
+  projectFilter = "all",
 }: {
   resetSignal: number;
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
   selectedOwnerIdentity?: OwnerIdentity | null;
+  projectFilter?: "all" | "none" | string;
 }) => {
   const [items, setItems] = useState<TaskProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +74,17 @@ export const TasksWidget = ({
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
+  const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
 
   const loadItems = async () => {
     setLoading(true);
     try {
-      const data = await workItemsService.getWorkItems({ type: "task_project", statusFilter: filter, sort, includeDeleted });
+      const [data, options] = await Promise.all([
+        workItemsService.getWorkItems({ type: "task_project", statusFilter: filter, sort, includeDeleted }),
+        workItemsService.listTaskProjectOptions(),
+      ]);
       setItems(data as TaskProjectItem[]);
+      setProjectOptions(options);
     } catch {
       setItems([]);
     } finally {
@@ -97,19 +110,26 @@ export const TasksWidget = ({
       { label: "All", value: "all" },
       { label: "Open", value: "open" },
       { label: "Closed", value: "closed" },
-      ...TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))
+      ...TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status })),
     ],
-    []
+    [],
   );
 
-
   const visibleItems = useMemo(() => {
-    if (!selectedOwnerIdentity) {
-      return items;
+    const ownerFiltered = selectedOwnerIdentity
+      ? items.filter((item) => workItemMatchesOwnerIdentity(item, selectedOwnerIdentity))
+      : items;
+
+    if (projectFilter === "all") {
+      return ownerFiltered;
     }
 
-    return items.filter((item) => workItemMatchesOwnerIdentity(item, selectedOwnerIdentity));
-  }, [items, selectedOwnerIdentity]);
+    if (projectFilter === "none") {
+      return ownerFiltered.filter((item) => !item.projectName?.trim());
+    }
+
+    return ownerFiltered.filter((item) => item.projectName === projectFilter);
+  }, [items, projectFilter, selectedOwnerIdentity]);
 
   const openCreate = () => {
     setEditing(null);
@@ -128,7 +148,9 @@ export const TasksWidget = ({
       status: item.status,
       category: item.category,
       tags: item.tags?.join(", ") ?? "",
-      description: item.description ?? ""
+      description: item.description ?? "",
+      projectName: item.projectName ?? "",
+      newProjectName: "",
     });
     setModalOpen(true);
   };
@@ -138,9 +160,23 @@ export const TasksWidget = ({
     if (!form.title.trim()) nextErrors.title = "Title is required";
     if (!form.requester.trim()) nextErrors.requester = "Requester is required";
     if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
+    if (form.projectName === ADD_NEW_OPTION_VALUE && !form.newProjectName.trim()) {
+      nextErrors.newProjectName = "Project name is required";
+    }
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
+  };
+
+  const resolveProjectName = async (): Promise<string | undefined> => {
+    if (form.projectName === ADD_NEW_OPTION_VALUE) {
+      const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
+      const updatedOptions = await workItemsService.listTaskProjectOptions();
+      setProjectOptions(updatedOptions);
+      return created.name;
+    }
+
+    return form.projectName.trim() || undefined;
   };
 
   const submit = async () => {
@@ -151,6 +187,8 @@ export const TasksWidget = ({
       setErrors((prev) => ({ ...prev, ownerGoogleId: "Owner is required" }));
       return;
     }
+
+    const projectName = await resolveProjectName();
 
     const payload = {
       type: "task_project" as const,
@@ -165,7 +203,8 @@ export const TasksWidget = ({
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      description: form.description.trim() || undefined
+      description: form.description.trim() || undefined,
+      projectName,
     };
 
     if (editing) {
@@ -192,7 +231,6 @@ export const TasksWidget = ({
     await loadItems();
   };
 
-
   const handleRestore = async (id: string) => {
     await workItemsService.restoreWorkItem(id);
     notify("Restored");
@@ -203,7 +241,7 @@ export const TasksWidget = ({
     <>
       <WidgetCard
         title="Tasks / Projects"
-        subtitle="Manage downtime fixes and strategic projects"
+        subtitle="Manage downtime and project work"
         controls={
           <div className="flex flex-wrap gap-2">
             <Select className="min-w-32" value={filter} onChange={(e) => setFilter(e.target.value)} options={filterOptions} />
@@ -214,7 +252,7 @@ export const TasksWidget = ({
               options={[
                 { label: "Created (Newest)", value: "created_desc" },
                 { label: "Created (Oldest)", value: "created_asc" },
-                { label: "Status Priority", value: "status_priority" }
+                { label: "Status Priority", value: "status_priority" },
               ]}
             />
             <Button onClick={openCreate} disabled={!canManage}>Add New</Button>
@@ -241,6 +279,7 @@ export const TasksWidget = ({
                     <p className="text-xs text-slate-500">
                       {item.category === "downtime" ? "Downtime" : "Project"} • Owner {formatOwnerLabel(item)} • Created {formatDate(item.createdAt)}
                     </p>
+                    <p className="text-xs text-slate-500">Project: {item.projectName || "No Project"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
@@ -290,11 +329,29 @@ export const TasksWidget = ({
           <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select
+            label="Project"
+            value={form.projectName}
+            options={[
+              { label: "No Project", value: "" },
+              ...projectOptions.map((option) => ({ label: option.name, value: option.name })),
+              { label: "Add New...", value: ADD_NEW_OPTION_VALUE },
+            ]}
+            onChange={(e) => setForm({ ...form, projectName: e.target.value, newProjectName: e.target.value === ADD_NEW_OPTION_VALUE ? form.newProjectName : "" })}
+          />
+          {form.projectName === ADD_NEW_OPTION_VALUE ? (
+            <Input
+              label="New Project Name"
+              value={form.newProjectName}
+              error={errors.newProjectName}
+              onChange={(e) => setForm({ ...form, newProjectName: e.target.value })}
+            />
+          ) : null}
+          <Select
             label="Category"
             value={form.category}
             options={[
               { label: "Project", value: "project" },
-              { label: "Downtime", value: "downtime" }
+              { label: "Downtime", value: "downtime" },
             ]}
             onChange={(e) => setForm({ ...form, category: e.target.value as "downtime" | "project" })}
           />

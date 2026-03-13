@@ -1,11 +1,12 @@
 import { seedWorkItems } from "../data/seedData";
-import type { ActivityEvent, Attachment, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, WorkItem } from "../types/workItem";
+import type { ActivityEvent, Attachment, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, TaskProjectOption, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
 const STORAGE_KEY = "special-projects-tracker-work-items";
 const ACTIVITY_STORAGE_KEY = "special-projects-tracker-activity-events";
 const COMMENTS_STORAGE_KEY = "special-projects-tracker-comments";
+const TASK_PROJECT_OPTIONS_STORAGE_KEY = "special-projects-tracker-task-project-options";
 
 const TERMINAL_STATUS = {
   purchase_request: new Set(["Received/Closed", "Rejected/Cancelled"]),
@@ -93,6 +94,32 @@ const isUuid = (value: string): boolean =>
 
 const isDateOnly = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+
+const DEFAULT_TASK_PROJECT_OPTIONS: TaskProjectOption[] = [
+  { id: "tpo_001", name: "ERP Modernization" },
+  { id: "tpo_002", name: "Warehouse Reliability" },
+  { id: "tpo_003", name: "Returns Redesign" },
+];
+
+const readTaskProjectOptions = (): TaskProjectOption[] => {
+  const raw = localStorage.getItem(TASK_PROJECT_OPTIONS_STORAGE_KEY);
+  if (!raw) {
+    localStorage.setItem(TASK_PROJECT_OPTIONS_STORAGE_KEY, JSON.stringify(DEFAULT_TASK_PROJECT_OPTIONS));
+    return [...DEFAULT_TASK_PROJECT_OPTIONS];
+  }
+
+  try {
+    return JSON.parse(raw) as TaskProjectOption[];
+  } catch {
+    localStorage.setItem(TASK_PROJECT_OPTIONS_STORAGE_KEY, JSON.stringify(DEFAULT_TASK_PROJECT_OPTIONS));
+    return [...DEFAULT_TASK_PROJECT_OPTIONS];
+  }
+};
+
+const writeTaskProjectOptions = (options: TaskProjectOption[]): void => {
+  localStorage.setItem(TASK_PROJECT_OPTIONS_STORAGE_KEY, JSON.stringify(options));
+};
+
 const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem[] => {
   if (!statusFilter || statusFilter === "all") {
     return items;
@@ -113,6 +140,7 @@ export const workItemsLocalService = {
   storageKey: STORAGE_KEY,
   activityStorageKey: ACTIVITY_STORAGE_KEY,
   commentsStorageKey: COMMENTS_STORAGE_KEY,
+  taskProjectOptionsStorageKey: TASK_PROJECT_OPTIONS_STORAGE_KEY,
 
   async getWorkItems(params: {
     type: WorkItem["type"];
@@ -235,6 +263,34 @@ export const workItemsLocalService = {
   async addActivity(event: Omit<ActivityEvent, "id" | "timestamp">): Promise<void> {
     return withLatency(() => {
       recordActivity(event);
+    });
+  },
+
+
+  async listTaskProjectOptions(): Promise<TaskProjectOption[]> {
+    return withLatency(() => readTaskProjectOptions().sort((a, b) => a.name.localeCompare(b.name)));
+  },
+
+  async createTaskProjectOption(name: string): Promise<TaskProjectOption> {
+    return withLatency(() => {
+      const normalized = name.trim();
+      if (!normalized) {
+        throw new Error("Project name is required");
+      }
+
+      const options = readTaskProjectOptions();
+      const existing = options.find((option) => option.name.toLowerCase() === normalized.toLowerCase());
+      if (existing) {
+        return existing;
+      }
+
+      const created: TaskProjectOption = {
+        id: generateId("tpo"),
+        name: normalized,
+      };
+      options.push(created);
+      writeTaskProjectOptions(options);
+      return created;
     });
   },
 
@@ -455,6 +511,7 @@ export const workItemsLocalService = {
       writeItems(seedWorkItems);
       writeActivityEvents([]);
       writeComments([]);
+      writeTaskProjectOptions(DEFAULT_TASK_PROJECT_OPTIONS);
     });
   }
 };

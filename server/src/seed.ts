@@ -4,6 +4,7 @@ import { prisma } from './db';
 async function main() {
   await prisma.activityEvent.deleteMany();
   await prisma.workItem.deleteMany();
+  await prisma.taskProjectOption.deleteMany();
 
   const seedItems = [
     {
@@ -11,6 +12,7 @@ async function main() {
       title: 'Prepare Q2 roadmap review',
       description: 'Draft slides and align with stakeholders.',
       status: 'in_progress',
+      projectName: 'ERP Modernization',
       ownerGoogleId: 'mock-owner-001',
       ownerEmail: 'alex.kim@example.org',
       ownerName: 'Alex Kim',
@@ -20,6 +22,7 @@ async function main() {
       title: 'Audit vendor contracts',
       description: null,
       status: 'todo',
+      projectName: 'Vendor Operations',
       ownerGoogleId: 'mock-owner-002',
       ownerEmail: 'morgan.lee@example.org',
       ownerName: 'Morgan Lee',
@@ -36,6 +39,11 @@ async function main() {
   ];
 
   const workItems = await Promise.all(seedItems.map((item) => prisma.workItem.create({ data: item })));
+
+  await prisma.taskProjectOption.createMany({
+    data: [{ name: 'ERP Modernization' }, { name: 'Vendor Operations' }],
+    skipDuplicates: true,
+  });
 
   await prisma.activityEvent.createMany({
     data: workItems.flatMap((item) => [

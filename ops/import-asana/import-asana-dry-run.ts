@@ -18,7 +18,7 @@ type CsvConfig = {
 
 type AsanaRow = Record<string, string>;
 
-type DryRunImportRecord = {
+type ImportRecord = {
   sourceFile: string;
   workItem: {
     type: WorkItemType;
@@ -47,6 +47,9 @@ type FileSummary = {
 };
 
 const ASANA_IMPORT_DIR = '/home/stefan/asana-import';
+const PURCHASE_REQUEST_OWNER_EMAIL = 'jlamora@bscsd.org';
+const TASK_FALLBACK_OWNER_EMAIL = 'aperuzzi@bscsd.org';
+const EXECUTE_FLAG = '--execute';
 
 const CSV_CONFIGS: CsvConfig[] = [
   {
@@ -85,6 +88,15 @@ const DEFAULT_MOCK_OWNERS: DirectoryPerson[] = [
 ];
 
 const normalize = (value: string | undefined): string => (value ?? '').trim();
+
+const appendMissingAssigneeNote = (description: string | null): string => {
+  const note = 'Imported from Asana without an assignee.';
+  if (!description) {
+    return note;
+  }
+
+  return `${description}\n\n${note}`;
+};
 
 const buildPurchaseDescription = (row: AsanaRow): string | null => {
   const parts: string[] = [];
@@ -276,6 +288,7 @@ const resolveOwners = async (): Promise<{ owners: DirectoryPerson[]; source: str
 };
 
 const main = async () => {
+  const shouldExecute = process.argv.includes(EXECUTE_FLAG);
   const loadedEnvPaths = await loadRuntimeEnv();
 
   const prisma = new PrismaClient();
@@ -293,7 +306,7 @@ const main = async () => {
       console.warn(error);
     }
 
-    const importRecords: DryRunImportRecord[] = [];
+    const importRecords: ImportRecord[] = [];
     const fileSummaries = new Map<string, FileSummary>();
     const skippedRows: string[] = [];
     const mappedOwners = new Set<string>();
@@ -328,11 +341,16 @@ const main = async () => {
           continue;
         }
 
-        const ownerEmail = normalize(row['Assignee Email']).toLowerCase();
-        if (!ownerEmail) {
-          summary.skippedMissingOwnerEmail += 1;
-          skippedRows.push(`${config.fileName}#${rowIndex + 2}: missing Assignee Email`);
-          continue;
+        let ownerEmail = '';
+        let usedTaskFallbackOwner = false;
+        if (config.workItemType === WorkItemType.purchase_request) {
+          ownerEmail = PURCHASE_REQUEST_OWNER_EMAIL;
+        } else {
+          ownerEmail = normalize(row['Assignee Email']).toLowerCase();
+          if (!ownerEmail) {
+            ownerEmail = TASK_FALLBACK_OWNER_EMAIL;
+            usedTaskFallbackOwner = true;
+          }
         }
 
         const owner = ownerByEmail.get(ownerEmail);
@@ -342,7 +360,10 @@ const main = async () => {
           continue;
         }
 
-        const ownerName = normalize(row['Assignee']) || owner.displayName;
+        const ownerName =
+          config.workItemType === WorkItemType.purchase_request || usedTaskFallbackOwner
+            ? owner.displayName
+            : normalize(row['Assignee']) || owner.displayName;
         const projectName = config.workItemType === WorkItemType.task ? config.defaultProjectName : null;
 
         if (projectName && !existingProjectOptionSet.has(projectName)) {
@@ -357,7 +378,9 @@ const main = async () => {
             description:
               config.workItemType === WorkItemType.purchase_request
                 ? buildPurchaseDescription(row)
-                : normalize(row['Notes']) || null,
+                : usedTaskFallbackOwner
+                  ? appendMissingAssigneeNote(normalize(row['Notes']) || null)
+                  : normalize(row['Notes']) || null,
             status:
               config.workItemType === WorkItemType.purchase_request
                 ? normalize(row['Status']) || normalize(row['Section/Column']) || 'Imported'
@@ -381,10 +404,10 @@ const main = async () => {
       fileSummaries.set(config.fileName, summary);
     }
 
-    console.log('=== Asana Import Dry Run Summary ===');
+    console.log('=== Asana Import Summary ===');
     console.log(`CSV directory: ${ASANA_IMPORT_DIR}`);
     console.log(`Owner source: ${ownerResolution.source} (${ownerResolution.groupEmail})`);
-    console.log(`Total rows that would be imported: ${importRecords.length}`);
+    console.log(`About to import ${importRecords.length} records${shouldExecute ? ' (execute mode)' : ' (dry-run mode)'}`);
     console.log(`Env files loaded: ${loadedEnvPaths.length > 0 ? loadedEnvPaths.join(', ') : 'none (using existing process env only)'}`);
 
     console.log('\nPer-CSV counts:');
@@ -426,7 +449,49 @@ const main = async () => {
       }
     }
 
-    console.log('\nDry run only. No database writes were performed.');
+    if (shouldExecute) {
+      if (projectOptionsToCreate.size > 0) {
+        await prisma.$transaction(
+          [...projectOptionsToCreate].sort().map((projectName) =>
+            prisma.taskProjectOption.upsert({
+              where: { name: projectName },
+              update: {},
+              create: { name: projectName },
+            }),
+          ),
+        );
+      }
+
+      for (const record of importRecords) {
+        await prisma.$transaction(async (tx) => {
+          const createdWorkItem = await tx.workItem.create({
+            data: {
+              type: record.workItem.type,
+              title: record.workItem.title,
+              description: record.workItem.description,
+              status: record.workItem.status,
+              ownerGoogleId: record.workItem.ownerGoogleId,
+              ownerEmail: record.workItem.ownerEmail,
+              ownerName: record.workItem.ownerName,
+              projectName: record.workItem.projectName,
+            },
+          });
+
+          await tx.activityEvent.create({
+            data: {
+              workItemId: createdWorkItem.id,
+              type: record.activityEvent.type,
+              message: record.activityEvent.message,
+              actor: record.activityEvent.actor,
+            },
+          });
+        });
+      }
+
+      console.log(`\nImport completed. ${importRecords.length} records were written to the database.`);
+    } else {
+      console.log(`\nDry run only. Re-run with ${EXECUTE_FLAG} to write to the database.`);
+    }
   } finally {
     await prisma.$disconnect();
   }

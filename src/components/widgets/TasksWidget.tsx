@@ -78,6 +78,11 @@ export const TasksWidget = ({
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
 
+  const ownerOptionsByGoogleId = useMemo(
+    () => new Map(ownerOptions.map((owner) => [owner.googleId, owner])),
+    [ownerOptions],
+  );
+
   const loadItems = async () => {
     setLoading(true);
     try {
@@ -106,6 +111,34 @@ export const TasksWidget = ({
 
     void loadOwners();
   }, []);
+
+
+  const mergedItemOwnerOptions = useMemo(() => {
+    const merged = new Map(ownerOptions.map((owner) => [owner.googleId, owner]));
+
+    for (const item of items) {
+      if (!item.ownerGoogleId || !item.ownerEmail) {
+        continue;
+      }
+
+      const existing = merged.get(item.ownerGoogleId);
+      if (!existing) {
+        merged.set(item.ownerGoogleId, {
+          googleId: item.ownerGoogleId,
+          email: item.ownerEmail,
+          displayName: item.ownerName || item.ownerEmail,
+        });
+        continue;
+      }
+
+      const existingLabel = getOwnerDisplayName(existing).trim().toLowerCase();
+      if (existingLabel === existing.email.trim().toLowerCase() && item.ownerName?.trim()) {
+        merged.set(item.ownerGoogleId, { ...existing, displayName: item.ownerName });
+      }
+    }
+
+    return [...merged.values()];
+  }, [items, ownerOptions]);
 
   const filterOptions = useMemo(
     () => [
@@ -288,7 +321,7 @@ export const TasksWidget = ({
                       {item.title}
                     </Link>
                     <p className="text-xs text-slate-500">
-                      {item.category === "downtime" ? "Downtime" : "Project"} • Owner {formatOwnerLabel(item)} • Created {formatDate(item.createdAt)}
+                      {item.category === "downtime" ? "Downtime" : "Project"} • Owner {formatOwnerLabel(item, ownerOptionsByGoogleId.get(item.ownerGoogleId))} • Created {formatDate(item.createdAt)}
                     </p>
                     <p className="text-xs text-slate-500">Project: {item.projectName || "No Project"}</p>
                   </div>
@@ -306,7 +339,7 @@ export const TasksWidget = ({
                   <div className="min-w-0 md:flex-1">
                     <Select
                       className="w-full min-w-0"
-                      options={ownerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))}
+                      options={mergedItemOwnerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))}
                       value={item.ownerGoogleId}
                       disabled={!canManage}
                       onChange={(e) => {
@@ -339,7 +372,7 @@ export const TasksWidget = ({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
-          <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
+          <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...mergedItemOwnerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select
             label="Project"

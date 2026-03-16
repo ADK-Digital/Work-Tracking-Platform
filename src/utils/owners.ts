@@ -7,6 +7,7 @@ type OwnerNameParts = {
 
 type DirectoryOwnerLike = OwnerNameParts & {
   displayName?: string | null;
+  ownerName?: string | null;
   email?: string | null;
 };
 
@@ -26,6 +27,11 @@ export const getOwnerDisplayName = (owner: DirectoryOwnerLike): string => {
     return fullName;
   }
 
+  const ownerName = owner.ownerName?.trim();
+  if (ownerName) {
+    return ownerName;
+  }
+
   if (owner.email?.trim()) {
     return owner.email;
   }
@@ -33,14 +39,11 @@ export const getOwnerDisplayName = (owner: DirectoryOwnerLike): string => {
   return "Unknown owner";
 };
 
-export const formatOwnerLabel = (owner: Partial<WorkItemOwner>): string => {
-  if (owner.ownerName?.trim()) {
-    return owner.ownerName;
-  }
-
-  if (owner.ownerEmail?.trim()) {
-    return owner.ownerEmail;
-  }
-
-  return "Unassigned";
-};
+export const formatOwnerLabel = (owner: Partial<WorkItemOwner>, directoryOwner?: DirectoryOwnerLike): string =>
+  getOwnerDisplayName({
+    displayName: directoryOwner?.displayName,
+    firstName: directoryOwner?.firstName,
+    lastName: directoryOwner?.lastName,
+    ownerName: owner.ownerName,
+    email: owner.ownerEmail ?? directoryOwner?.email,
+  });

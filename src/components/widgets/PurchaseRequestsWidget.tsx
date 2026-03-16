@@ -20,7 +20,7 @@ import type { OwnerIdentity } from "../../utils/ownerMatching";
 import { workItemMatchesOwnerIdentity } from "../../utils/ownerMatching";
 import { formatOwnerLabel } from "../../utils/owners";
 
-type Filter = "all" | "open" | "closed" | string;
+type Filter = "all" | string;
 
 type FormState = {
   title: string;
@@ -104,8 +104,6 @@ export const PurchaseRequestsWidget = ({
   const filterOptions = useMemo(
     () => [
       { label: "All", value: "all" },
-      { label: "Open", value: "open" },
-      { label: "Closed", value: "closed" },
       ...PURCHASE_REQUEST_STATUSES.map((status) => ({ label: status.label, value: status.key }))
     ],
     []
@@ -257,7 +255,11 @@ export const PurchaseRequestsWidget = ({
         ) : (
           <div className="space-y-3">
             {visibleItems.map((item) => (
-              <div key={item.id} className="rounded-lg border border-slate-200 p-3">
+              <div key={item.id} className="relative rounded-lg border border-slate-200 p-3 pr-28">
+                <div className="absolute right-3 top-3 flex items-center gap-2">
+                  {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
+                  <Badge status={item.status} label={item.statusLabel} />
+                </div>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <Link to={`/work-items/${item.id}`} className="cursor-pointer font-medium text-slate-900 hover:underline">
@@ -266,10 +268,6 @@ export const PurchaseRequestsWidget = ({
                     <p className="text-xs text-slate-500">
                       {item.vendor} • ${item.amount.toLocaleString()} • Owner {formatOwnerLabel(item)} • Created {formatDate(item.createdAt)}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
-                    <Badge status={item.status} label={item.statusLabel} />
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-4">

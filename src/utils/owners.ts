@@ -18,7 +18,10 @@ const formatNameParts = ({ firstName, lastName }: OwnerNameParts): string | null
 
 export const getOwnerDisplayName = (owner: DirectoryOwnerLike): string => {
   const displayName = owner.displayName?.trim();
-  if (displayName) {
+  const email = owner.email?.trim();
+  const displayNameLooksLikeEmail = Boolean(displayName && email && displayName.toLowerCase() === email.toLowerCase());
+
+  if (displayName && !displayNameLooksLikeEmail) {
     return displayName;
   }
 
@@ -32,8 +35,8 @@ export const getOwnerDisplayName = (owner: DirectoryOwnerLike): string => {
     return ownerName;
   }
 
-  if (owner.email?.trim()) {
-    return owner.email;
+  if (email) {
+    return email;
   }
 
   return "Unknown owner";

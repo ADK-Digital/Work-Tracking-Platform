@@ -9,6 +9,7 @@ import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerD
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
 import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectOption } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
+import { getOwnerDisplayName } from "../utils/owners";
 
 interface DashboardProps {
   onReset: () => void;
@@ -170,7 +171,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
       const isCurrentUser = currentOwnerDirectoryEntry?.googleId === owner.googleId;
       options.push({
         value: owner.googleId,
-        label: isCurrentUser ? `${owner.displayName} (You)` : owner.displayName,
+        label: isCurrentUser ? `${getOwnerDisplayName(owner)} (You)` : getOwnerDisplayName(owner),
       });
     }
 
@@ -270,7 +271,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
             <select value={searchOwner} onChange={(event) => setSearchOwner(event.target.value)} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
               <option value="all">All</option>
               {directoryOwners.map((owner) => (
-                <option key={owner.googleId} value={owner.googleId}>{owner.displayName}</option>
+                <option key={owner.googleId} value={owner.googleId}>{getOwnerDisplayName(owner)}</option>
               ))}
             </select>
           </label>

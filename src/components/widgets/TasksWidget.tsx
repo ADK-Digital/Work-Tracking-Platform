@@ -293,32 +293,38 @@ export const TasksWidget = ({
                     <p className="text-xs text-slate-500">Project: {item.projectName || "No Project"}</p>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-4">
-                  <Select
-                    options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))}
-                    value={item.status}
-                    disabled={!canManage}
-                    onChange={(e) => void updateInline(item.id, { status: e.target.value as TaskProjectStatus })}
-                  />
-                  <Select
-                    options={ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))}
-                    value={item.ownerGoogleId}
-                    disabled={!canManage}
-                    onChange={(e) => {
-                      const nextOwner = ownerOptions.find((owner) => owner.googleId === e.target.value);
-                      if (!nextOwner) return;
-                      void updateInline(item.id, { ownerGoogleId: nextOwner.googleId, ownerEmail: nextOwner.email, ownerName: nextOwner.displayName });
-                    }}
-                  />
-                  <Button variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
+                <div className="mt-3 flex flex-col gap-2 text-sm md:flex-row md:items-stretch">
+                  <div className="min-w-0 md:flex-1">
+                    <Select
+                      className="w-full min-w-0"
+                      options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))}
+                      value={item.status}
+                      disabled={!canManage}
+                      onChange={(e) => void updateInline(item.id, { status: e.target.value as TaskProjectStatus })}
+                    />
+                  </div>
+                  <div className="min-w-0 md:flex-1">
+                    <Select
+                      className="w-full min-w-0"
+                      options={ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))}
+                      value={item.ownerGoogleId}
+                      disabled={!canManage}
+                      onChange={(e) => {
+                        const nextOwner = ownerOptions.find((owner) => owner.googleId === e.target.value);
+                        if (!nextOwner) return;
+                        void updateInline(item.id, { ownerGoogleId: nextOwner.googleId, ownerEmail: nextOwner.email, ownerName: nextOwner.displayName });
+                      }}
+                    />
+                  </div>
+                  <Button className="md:w-auto md:min-w-24 md:flex-none" variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
                     Edit
                   </Button>
                   {item.deleted && canRestore ? (
-                    <Button variant="secondary" onClick={() => void handleRestore(item.id)}>
+                    <Button className="md:w-auto md:min-w-24 md:flex-none" variant="secondary" onClick={() => void handleRestore(item.id)}>
                       Restore
                     </Button>
                   ) : (
-                    <Button onClick={() => void handleComplete(item.id)} disabled={!canManage || item.deleted || item.status === "completed"}>
+                    <Button className="md:w-auto md:min-w-24 md:flex-none" onClick={() => void handleComplete(item.id)} disabled={!canManage || item.deleted || item.status === "completed"}>
                       Complete
                     </Button>
                   )}

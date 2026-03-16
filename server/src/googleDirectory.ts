@@ -15,6 +15,8 @@ export type DirectoryPerson = {
   googleId: string;
   email: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
 };
 
 const membershipCache = new Map<string, CacheEntry>();
@@ -80,7 +82,10 @@ const getDirectoryClient = async (): Promise<any | null> => {
     clientOptions: {
       subject: impersonateAdminEmail,
     },
-    scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly'],
+    scopes: [
+      'https://www.googleapis.com/auth/admin.directory.group.member.readonly',
+      'https://www.googleapis.com/auth/admin.directory.user.readonly',
+    ],
   });
 
   const authClient = await auth.getClient();
@@ -116,6 +121,38 @@ const comparePeople = (a: DirectoryPerson, b: DirectoryPerson): number => {
   return a.email.localeCompare(b.email, undefined, { sensitivity: 'base' });
 };
 
+const resolvePersonName = async (directory: any, person: DirectoryPerson): Promise<DirectoryPerson> => {
+  try {
+    const response = await directory.users.get({
+      userKey: person.email,
+      projection: 'basic',
+      fields: 'id,name(fullName,givenName,familyName),primaryEmail',
+    });
+
+    const googleId = typeof response?.data?.id === 'string' && response.data.id.trim().length > 0 ? response.data.id : person.googleId;
+    const fullName = typeof response?.data?.name?.fullName === 'string' && response.data.name.fullName.trim().length > 0
+      ? response.data.name.fullName.trim()
+      : null;
+    const firstName = typeof response?.data?.name?.givenName === 'string' && response.data.name.givenName.trim().length > 0
+      ? response.data.name.givenName.trim()
+      : undefined;
+    const lastName = typeof response?.data?.name?.familyName === 'string' && response.data.name.familyName.trim().length > 0
+      ? response.data.name.familyName.trim()
+      : undefined;
+
+    return {
+      ...person,
+      googleId,
+      displayName: fullName ?? person.displayName,
+      firstName,
+      lastName,
+    };
+  } catch (error) {
+    console.warn(`Google Directory user lookup failed for ${person.email}; falling back to membership data`, error);
+    return person;
+  }
+};
+
 export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPerson[] | null> => {
   const directory = await getDirectoryClient();
 
@@ -147,7 +184,10 @@ export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPer
       pageToken = response.data.nextPageToken ?? undefined;
     } while (pageToken);
 
-    return [...peopleByEmail.values()].sort(comparePeople);
+    const members = [...peopleByEmail.values()];
+    const enrichedMembers = await Promise.all(members.map((person) => resolvePersonName(directory, person)));
+
+    return enrichedMembers.sort(comparePeople);
   } catch (error) {
     console.error(`Google Directory member listing failed for ${groupEmail}`, error);
     return [];

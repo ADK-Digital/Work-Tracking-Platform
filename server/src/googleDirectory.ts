@@ -15,14 +15,6 @@ export type DirectoryPerson = {
   googleId: string;
   email: string;
   displayName: string;
-  firstName?: string;
-  lastName?: string;
-};
-
-type DirectoryUserName = {
-  fullName?: string;
-  firstName?: string;
-  lastName?: string;
 };
 
 const membershipCache = new Map<string, CacheEntry>();
@@ -88,10 +80,7 @@ const getDirectoryClient = async (): Promise<any | null> => {
     clientOptions: {
       subject: impersonateAdminEmail,
     },
-    scopes: [
-      'https://www.googleapis.com/auth/admin.directory.group.member.readonly',
-      'https://www.googleapis.com/auth/admin.directory.user.readonly',
-    ],
+    scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly'],
   });
 
   const authClient = await auth.getClient();
@@ -115,65 +104,7 @@ const toDirectoryPerson = (member: any): DirectoryPerson | null => {
     googleId,
     email,
     displayName: displayNameCandidate,
-    firstName: typeof member?.name?.givenName === 'string' ? member.name.givenName : undefined,
-    lastName: typeof member?.name?.familyName === 'string' ? member.name.familyName : undefined,
   };
-};
-
-const fetchWorkspaceUserName = async (directory: any, userKey: string): Promise<DirectoryUserName | null> => {
-  try {
-    const response = await directory.users.get({
-      userKey,
-      projection: 'basic',
-      fields: 'name(fullName,givenName,familyName)',
-    });
-
-    const fullName = typeof response?.data?.name?.fullName === 'string' ? response.data.name.fullName.trim() : '';
-    const firstName = typeof response?.data?.name?.givenName === 'string' ? response.data.name.givenName.trim() : '';
-    const lastName = typeof response?.data?.name?.familyName === 'string' ? response.data.name.familyName.trim() : '';
-
-    if (!fullName && !firstName && !lastName) {
-      return null;
-    }
-
-    return {
-      ...(fullName ? { fullName } : {}),
-      ...(firstName ? { firstName } : {}),
-      ...(lastName ? { lastName } : {}),
-    };
-  } catch {
-    return null;
-  }
-};
-
-const enrichMembersWithWorkspaceNames = async (directory: any, members: DirectoryPerson[]): Promise<DirectoryPerson[]> => {
-  const namesByEmail = new Map<string, DirectoryUserName | null>();
-
-  return Promise.all(
-    members.map(async (member) => {
-      const displayName = member.displayName.trim().toLowerCase();
-      const email = member.email.trim().toLowerCase();
-      if (displayName !== email) {
-        return member;
-      }
-
-      if (!namesByEmail.has(member.email)) {
-        namesByEmail.set(member.email, await fetchWorkspaceUserName(directory, member.email));
-      }
-
-      const resolvedName = namesByEmail.get(member.email) ?? null;
-      if (!resolvedName) {
-        return member;
-      }
-
-      return {
-        ...member,
-        ...(resolvedName.fullName ? { displayName: resolvedName.fullName } : {}),
-        ...(resolvedName.firstName ? { firstName: resolvedName.firstName } : {}),
-        ...(resolvedName.lastName ? { lastName: resolvedName.lastName } : {}),
-      };
-    }),
-  );
 };
 
 const comparePeople = (a: DirectoryPerson, b: DirectoryPerson): number => {
@@ -216,10 +147,7 @@ export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPer
       pageToken = response.data.nextPageToken ?? undefined;
     } while (pageToken);
 
-    const members = [...peopleByEmail.values()];
-    const membersWithNames = await enrichMembersWithWorkspaceNames(directory, members);
-
-    return membersWithNames.sort(comparePeople);
+    return [...peopleByEmail.values()].sort(comparePeople);
   } catch (error) {
     console.error(`Google Directory member listing failed for ${groupEmail}`, error);
     return [];

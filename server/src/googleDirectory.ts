@@ -15,10 +15,25 @@ export type DirectoryPerson = {
   googleId: string;
   email: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
+};
+
+type OwnerEnrichmentDebug = {
+  email: string;
+  initialDisplayName: string;
+  usersGetAttempted: boolean;
+  usersGetSucceeded: boolean;
+  usersGetError?: string;
+  fullName?: string;
+  givenName?: string;
+  familyName?: string;
+  finalDisplayName: string;
 };
 
 const membershipCache = new Map<string, CacheEntry>();
 const MEMBERSHIP_TTL_MS = 5 * 60 * 1000;
+const ownerDirectoryDebugEnabled = process.env.OWNER_DIRECTORY_DEBUG === 'true';
 
 const cacheKey = (email: string, groupEmail: string) => `${email.toLowerCase()}::${groupEmail.toLowerCase()}`;
 
@@ -80,7 +95,7 @@ const getDirectoryClient = async (): Promise<any | null> => {
     clientOptions: {
       subject: impersonateAdminEmail,
     },
-    scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly'],
+    scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly', 'https://www.googleapis.com/auth/admin.directory.user.readonly'],
   });
 
   const authClient = await auth.getClient();
@@ -104,7 +119,69 @@ const toDirectoryPerson = (member: any): DirectoryPerson | null => {
     googleId,
     email,
     displayName: displayNameCandidate,
+    firstName: typeof member?.name?.givenName === 'string' ? member.name.givenName : undefined,
+    lastName: typeof member?.name?.familyName === 'string' ? member.name.familyName : undefined,
   };
+};
+
+const logOwnerEnrichmentDebug = (debug: OwnerEnrichmentDebug) => {
+  if (!ownerDirectoryDebugEnabled) {
+    return;
+  }
+
+  console.info('[owner-directory-debug] enrichment', JSON.stringify(debug));
+};
+
+const enrichPersonName = async (directory: any, person: DirectoryPerson): Promise<DirectoryPerson> => {
+  const initialDisplayName = person.displayName;
+  const displayNameLooksLikeEmail = initialDisplayName.toLowerCase() === person.email;
+
+  if (!displayNameLooksLikeEmail) {
+    return person;
+  }
+
+  const debugPayload: OwnerEnrichmentDebug = {
+    email: person.email,
+    initialDisplayName,
+    usersGetAttempted: true,
+    usersGetSucceeded: false,
+    finalDisplayName: person.displayName,
+  };
+
+  try {
+    const userResponse = await directory.users.get({
+      userKey: person.email,
+      projection: 'basic',
+    });
+
+    const fullName = typeof userResponse?.data?.name?.fullName === 'string' ? userResponse.data.name.fullName.trim() : '';
+    const givenName = typeof userResponse?.data?.name?.givenName === 'string' ? userResponse.data.name.givenName.trim() : '';
+    const familyName = typeof userResponse?.data?.name?.familyName === 'string' ? userResponse.data.name.familyName.trim() : '';
+    const fallbackFullName = [givenName, familyName].filter(Boolean).join(' ').trim();
+    const enrichedDisplayName = fullName || fallbackFullName || person.displayName;
+
+    const enrichedPerson: DirectoryPerson = {
+      ...person,
+      displayName: enrichedDisplayName,
+      firstName: givenName || person.firstName,
+      lastName: familyName || person.lastName,
+    };
+
+    debugPayload.usersGetSucceeded = true;
+    debugPayload.fullName = fullName || undefined;
+    debugPayload.givenName = givenName || undefined;
+    debugPayload.familyName = familyName || undefined;
+    debugPayload.finalDisplayName = enrichedPerson.displayName;
+    logOwnerEnrichmentDebug(debugPayload);
+    return enrichedPerson;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    debugPayload.usersGetError = message;
+    debugPayload.finalDisplayName = person.displayName;
+    logOwnerEnrichmentDebug(debugPayload);
+    console.warn(`[owner-directory-debug] users.get failed for ${person.email}`, error);
+    return person;
+  }
 };
 
 const comparePeople = (a: DirectoryPerson, b: DirectoryPerson): number => {
@@ -141,7 +218,8 @@ export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPer
           continue;
         }
 
-        peopleByEmail.set(person.email, person);
+        const enrichedPerson = await enrichPersonName(directory, person);
+        peopleByEmail.set(enrichedPerson.email, enrichedPerson);
       }
 
       pageToken = response.data.nextPageToken ?? undefined;

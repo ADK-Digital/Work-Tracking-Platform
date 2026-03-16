@@ -5,6 +5,8 @@ export type OwnerDirectoryEntry = {
   googleId: string;
   email: string;
   displayName: string;
+  firstName?: string;
+  lastName?: string;
 };
 
 export type OwnerDirectoryResponse = {

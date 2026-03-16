@@ -19,7 +19,7 @@ import { formatDate } from "../../utils/dates";
 import { useToast } from "../ui/Toast";
 import type { OwnerIdentity } from "../../utils/ownerMatching";
 import { workItemMatchesOwnerIdentity } from "../../utils/ownerMatching";
-import { formatOwnerLabel } from "../../utils/owners";
+import { formatOwnerLabel, getOwnerDisplayName } from "../../utils/owners";
 
 type Filter = "all" | string;
 
@@ -197,7 +197,7 @@ export const TasksWidget = ({
       requester: form.requester.trim(),
       ownerGoogleId: selectedOwner.googleId,
       ownerEmail: selectedOwner.email,
-      ownerName: selectedOwner.displayName,
+      ownerName: getOwnerDisplayName(selectedOwner),
       status: form.status as TaskProjectStatus,
       category: form.category,
       tags: form.tags
@@ -306,13 +306,13 @@ export const TasksWidget = ({
                   <div className="min-w-0 md:flex-1">
                     <Select
                       className="w-full min-w-0"
-                      options={ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))}
+                      options={ownerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))}
                       value={item.ownerGoogleId}
                       disabled={!canManage}
                       onChange={(e) => {
                         const nextOwner = ownerOptions.find((owner) => owner.googleId === e.target.value);
                         if (!nextOwner) return;
-                        void updateInline(item.id, { ownerGoogleId: nextOwner.googleId, ownerEmail: nextOwner.email, ownerName: nextOwner.displayName });
+                        void updateInline(item.id, { ownerGoogleId: nextOwner.googleId, ownerEmail: nextOwner.email, ownerName: getOwnerDisplayName(nextOwner) });
                       }}
                     />
                   </div>
@@ -339,7 +339,7 @@ export const TasksWidget = ({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
-          <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
+          <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select
             label="Project"

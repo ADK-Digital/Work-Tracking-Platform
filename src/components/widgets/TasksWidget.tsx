@@ -294,16 +294,18 @@ export const TasksWidget = ({
                   </div>
                 </div>
                 <div className="mt-3 flex flex-col gap-2 text-sm md:flex-row md:items-stretch">
-                  <div className="min-w-40 md:min-w-0 md:flex-1">
+                  <div className="min-w-0 md:flex-1">
                     <Select
+                      className="w-full min-w-0"
                       options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))}
                       value={item.status}
                       disabled={!canManage}
                       onChange={(e) => void updateInline(item.id, { status: e.target.value as TaskProjectStatus })}
                     />
                   </div>
-                  <div className="min-w-40 md:min-w-0 md:flex-1">
+                  <div className="min-w-0 md:flex-1">
                     <Select
+                      className="w-full min-w-0"
                       options={ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))}
                       value={item.ownerGoogleId}
                       disabled={!canManage}

@@ -6,22 +6,23 @@ import {
 } from "../types/workItem";
 
 const PURCHASE_STATUS_PRIORITY = new Map(
-  PURCHASE_REQUEST_STATUSES.map((status, index) => [status, index])
+  PURCHASE_REQUEST_STATUSES.map((status) => [status.key, status.sortOrder])
 );
 
 const TASK_STATUS_PRIORITY = new Map(
-  ["Blocked", "In Progress", "Backlog", "Done", "Cancelled"].map((status, index) => [
-    status,
-    index
-  ])
+  TASK_PROJECT_STATUSES.map((status) => [status.key, status.sortOrder])
 );
 
 const getStatusWeight = (item: WorkItem): number => {
-  if (item.type === "purchase_request") {
-    return PURCHASE_STATUS_PRIORITY.get(item.status) ?? PURCHASE_REQUEST_STATUSES.length;
+  if (item.statusSortOrder !== undefined) {
+    return item.statusSortOrder;
   }
 
-  return TASK_STATUS_PRIORITY.get(item.status) ?? TASK_PROJECT_STATUSES.length;
+  if (item.type === "purchase_request") {
+    return PURCHASE_STATUS_PRIORITY.get(item.status) ?? 999;
+  }
+
+  return TASK_STATUS_PRIORITY.get(item.status) ?? 999;
 };
 
 export const sortWorkItems = (items: WorkItem[], sort: SortOption = "created_desc"): WorkItem[] => {

@@ -53,7 +53,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [editOpen, setEditOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "New", ownerGoogleId: "", projectName: "", newProjectName: "" });
+  const [form, setForm] = useState<FormState>({ title: "", description: "", status: "submitted", ownerGoogleId: "", projectName: "", newProjectName: "" });
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
@@ -67,8 +67,8 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const statusOptions = useMemo(
     () =>
       (item?.type === "purchase_request" ? PURCHASE_REQUEST_STATUSES : TASK_PROJECT_STATUSES).map((status) => ({
-        label: status,
-        value: status
+        label: status.label,
+        value: status.key
       })),
     [item?.type]
   );
@@ -316,7 +316,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
               </div>
               <div className="flex items-center gap-2">
                 {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
-                <Badge status={item.status} />
+                <Badge status={item.status} label={item.statusLabel} />
               </div>
             </div>
 

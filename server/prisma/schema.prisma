@@ -29,7 +29,7 @@ model WorkItem {
   type        WorkItemType
   title       String
   description String?
-  status      String
+  statusId    String
   projectName String?
   ownerGoogleId String
   ownerEmail    String
@@ -40,16 +40,32 @@ model WorkItem {
   updatedAt   DateTime        @updatedAt
   deletedAt   DateTime?
 
+  statusMeta     WorkItemStatus   @relation(fields: [statusId], references: [id])
   activityEvents ActivityEvent[]
   comments       Comment[]
   attachments    Attachment[]
 
   @@index([updatedAt])
   @@index([type])
-  @@index([status])
+  @@index([statusId])
   @@index([projectName])
   @@index([ownerGoogleId])
   @@index([ownerEmail])
+}
+
+model WorkItemStatus {
+  id         String       @id @default(uuid())
+  workType   WorkItemType
+  statusKey  String
+  label      String
+  sortOrder  Int
+  isActive   Boolean      @default(true)
+
+  workItems  WorkItem[]
+
+  @@unique([workType, statusKey])
+  @@index([workType, sortOrder])
+  @@index([isActive])
 }
 
 model TaskProjectOption {

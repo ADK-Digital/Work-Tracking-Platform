@@ -11,13 +11,14 @@ import type {
   SearchFilters,
   SearchResult,
   Attachment,
-  TaskProjectOption
+  TaskProjectOption,
+  WorkItemStatusDefinition
 } from "../types/workItem";
 import { sortWorkItems } from "../utils/sorting";
 
 const TERMINAL_STATUS = {
-  purchase_request: new Set(["Received/Closed", "Rejected/Cancelled"]),
-  task_project: new Set(["Done", "Cancelled"])
+  purchase_request: new Set(["completed"]),
+  task_project: new Set(["completed"])
 };
 
 const filterByStatus = (items: WorkItem[], statusFilter: StatusFilter): WorkItem[] => {
@@ -42,6 +43,8 @@ type BackendWorkItem = {
   title: string;
   description?: string | null;
   status: string;
+  statusLabel?: string;
+  statusSortOrder?: number;
   projectName?: string | null;
   ownerGoogleId: string;
   ownerEmail: string;
@@ -126,6 +129,8 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
       title: item.title,
       description: item.description ?? undefined,
       status: item.status as PurchaseRequestStatus,
+      statusLabel: item.statusLabel,
+      statusSortOrder: item.statusSortOrder,
       priority: 2,
       requester: "Unassigned",
       ownerGoogleId: item.ownerGoogleId,
@@ -147,6 +152,8 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
     title: item.title,
     description: item.description ?? undefined,
     status: item.status as TaskProjectStatus,
+    statusLabel: item.statusLabel,
+    statusSortOrder: item.statusSortOrder,
     priority: 2,
     requester: "Unassigned",
     ownerGoogleId: item.ownerGoogleId,
@@ -249,6 +256,16 @@ export const workItemsApiService = {
   },
 
 
+
+  async listStatuses(type?: WorkItem["type"]): Promise<WorkItemStatusDefinition[]> {
+    const apiType = type ? (type === "task_project" ? "task" : type) : undefined;
+    const statuses = await apiFetch<Array<{ statusKey: string; label: string; sortOrder: number }>>("/api/work-item-statuses", {
+      query: { type: apiType }
+    });
+
+    return statuses.map((status) => ({ key: status.statusKey, label: status.label, sortOrder: status.sortOrder }));
+  },
+
   async listTaskProjectOptions(): Promise<TaskProjectOption[]> {
     return apiFetch<TaskProjectOption[]>("/api/task-project-options");
   },
@@ -314,6 +331,12 @@ export const workItemsApiService = {
     });
 
     return normalizeWorkItem(updated);
+  },
+
+
+  async completeWorkItem(id: string): Promise<WorkItem> {
+    const completed = await apiFetch<BackendWorkItem>(`/api/work-items/${id}/complete`, { method: "POST" });
+    return normalizeWorkItem(completed);
   },
 
   async softDeleteWorkItem(id: string): Promise<void> {

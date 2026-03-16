@@ -90,49 +90,4 @@ ownersRouter.get('/owners/directory', async (_req, res) => {
   });
 });
 
-ownersRouter.get('/owners/directory/debug', async (req, res) => {
-  const groupEmail = resolveOwnerDirectoryGroup();
-  const members = await listGroupMembers(groupEmail);
-
-  if (members === null) {
-    return res.status(503).json({
-      error: 'Google directory client unavailable; debug route requires google-directory mode.',
-      groupEmail,
-    });
-  }
-
-  const emails = typeof req.query.emails === 'string'
-    ? req.query.emails
-        .split(',')
-        .map((email) => email.trim().toLowerCase())
-        .filter(Boolean)
-    : [];
-
-  const filtered = emails.length > 0 ? members.filter((member) => emails.includes(member.email)) : members;
-
-  const owners = filtered.map((member) => ({
-    googleId: member.googleId,
-    email: member.email,
-    displayName: member.displayName,
-    firstName: member.firstName ?? null,
-    lastName: member.lastName ?? null,
-  }));
-
-  console.info(
-    '[owner-directory-debug] payload',
-    JSON.stringify({
-      groupEmail,
-      requestedEmails: emails,
-      ownerCount: owners.length,
-      owners,
-    }),
-  );
-
-  return res.json({
-    groupEmail,
-    ownerCount: owners.length,
-    owners,
-  });
-});
-
 export default ownersRouter;

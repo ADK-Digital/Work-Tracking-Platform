@@ -106,15 +106,10 @@ const toDirectoryPerson = (member: any): DirectoryPerson | null => {
     return null;
   }
 
-  const displayNameCandidate =
-    typeof member?.name?.fullName === 'string' && member.name.fullName.trim().length > 0
-      ? member.name.fullName.trim()
-      : email;
-
   return {
     googleId,
     email,
-    displayName: displayNameCandidate,
+    displayName: email,
   };
 };
 

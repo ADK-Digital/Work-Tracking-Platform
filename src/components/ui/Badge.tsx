@@ -1,11 +1,11 @@
 const statusStyles: Record<string, string> = {
-  submitted: "bg-indigo-100 text-indigo-700",
+  submitted: "bg-rose-100 text-rose-800",
+  quote_received: "bg-rose-100 text-rose-800",
+  in_progress: "bg-amber-100 text-amber-800",
+  on_hold: "bg-amber-100 text-amber-800",
   quote_requested: "bg-amber-100 text-amber-800",
-  quote_received: "bg-sky-100 text-sky-700",
-  ordered: "bg-violet-100 text-violet-700",
-  in_progress: "bg-indigo-100 text-indigo-700",
-  on_hold: "bg-rose-100 text-rose-700",
-  completed: "bg-emerald-100 text-emerald-700",
+  ordered: "bg-amber-100 text-amber-800",
+  completed: "bg-emerald-100 text-emerald-800",
 };
 
 const humanize = (value: string): string =>

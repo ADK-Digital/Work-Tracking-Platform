@@ -54,14 +54,20 @@ const parseServiceAccountCredentials = (): { credentials?: Record<string, unknow
   }
 
   if (raw.startsWith('{')) {
-    return { credentials: JSON.parse(raw) };
+    try {
+      return { credentials: JSON.parse(raw) };
+    } catch (error) {
+      console.error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON; skipping Google Directory client initialization.', error);
+      return null;
+    }
   }
 
   if (fs.existsSync(raw)) {
     return { keyFile: raw };
   }
 
-  throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON must be a JSON string or a valid file path.');
+  console.error('GOOGLE_SERVICE_ACCOUNT_JSON must be a JSON string or a valid file path; skipping Google Directory client initialization.');
+  return null;
 };
 
 const getDirectoryClient = async (): Promise<any | null> => {
@@ -72,19 +78,24 @@ const getDirectoryClient = async (): Promise<any | null> => {
     return null;
   }
 
-  const { google } = getGoogleApis();
+  try {
+    const { google } = getGoogleApis();
 
-  const auth = new google.auth.GoogleAuth({
-    ...(authSource.credentials ? { credentials: authSource.credentials } : {}),
-    ...(authSource.keyFile ? { keyFile: authSource.keyFile } : {}),
-    clientOptions: {
-      subject: impersonateAdminEmail,
-    },
-    scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly'],
-  });
+    const auth = new google.auth.GoogleAuth({
+      ...(authSource.credentials ? { credentials: authSource.credentials } : {}),
+      ...(authSource.keyFile ? { keyFile: authSource.keyFile } : {}),
+      clientOptions: {
+        subject: impersonateAdminEmail,
+      },
+      scopes: ['https://www.googleapis.com/auth/admin.directory.group.member.readonly'],
+    });
 
-  const authClient = await auth.getClient();
-  return google.admin({ version: 'directory_v1', auth: authClient });
+    const authClient = await auth.getClient();
+    return google.admin({ version: 'directory_v1', auth: authClient });
+  } catch (error) {
+    console.error('Failed to initialize Google Directory client; using fallback behavior.', error);
+    return null;
+  }
 };
 
 const toDirectoryPerson = (member: any): DirectoryPerson | null => {
@@ -150,7 +161,7 @@ export const listGroupMembers = async (groupEmail: string): Promise<DirectoryPer
     return [...peopleByEmail.values()].sort(comparePeople);
   } catch (error) {
     console.error(`Google Directory member listing failed for ${groupEmail}`, error);
-    return [];
+    return null;
   }
 };
 

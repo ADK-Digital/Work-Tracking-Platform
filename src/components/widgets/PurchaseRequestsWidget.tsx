@@ -255,12 +255,12 @@ export const PurchaseRequestsWidget = ({
         ) : (
           <div className="space-y-3">
             {visibleItems.map((item) => (
-              <div key={item.id} className="relative rounded-lg border border-slate-200 p-3 pr-28">
+              <div key={item.id} className="relative rounded-lg border border-slate-200 p-3">
                 <div className="absolute right-3 top-3 flex items-center gap-2">
                   {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
                   <Badge status={item.status} label={item.statusLabel} />
                 </div>
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3 pr-28">
                   <div>
                     <Link to={`/work-items/${item.id}`} className="cursor-pointer font-medium text-slate-900 hover:underline">
                       {item.title}

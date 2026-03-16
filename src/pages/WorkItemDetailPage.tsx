@@ -263,7 +263,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
         ? {
             ownerGoogleId: form.ownerGoogleId,
             ownerEmail: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email,
-            ownerName: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.displayName
+            ownerName: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email
           }
         : {})
     });
@@ -529,7 +529,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
             label="Owner"
             value={form.ownerGoogleId}
             error={errors.ownerGoogleId}
-            options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]}
+            options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.email, value: owner.googleId }))]}
             onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })}
           />
           <Select

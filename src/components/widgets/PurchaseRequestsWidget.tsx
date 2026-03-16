@@ -111,24 +111,15 @@ export const PurchaseRequestsWidget = ({
     const merged = new Map(ownerOptions.map((owner) => [owner.googleId, owner]));
 
     for (const item of items) {
-      if (!item.ownerGoogleId || !item.ownerEmail) {
+      if (!item.ownerGoogleId || !item.ownerEmail || merged.has(item.ownerGoogleId)) {
         continue;
       }
 
-      const existing = merged.get(item.ownerGoogleId);
-      if (!existing) {
-        merged.set(item.ownerGoogleId, {
-          googleId: item.ownerGoogleId,
-          email: item.ownerEmail,
-          displayName: item.ownerName || item.ownerEmail,
-        });
-        continue;
-      }
-
-      const existingLabel = getOwnerDisplayName(existing).trim().toLowerCase();
-      if (existingLabel === existing.email.trim().toLowerCase() && item.ownerName?.trim()) {
-        merged.set(item.ownerGoogleId, { ...existing, displayName: item.ownerName });
-      }
+      merged.set(item.ownerGoogleId, {
+        googleId: item.ownerGoogleId,
+        email: item.ownerEmail,
+        displayName: item.ownerEmail,
+      });
     }
 
     return [...merged.values()];

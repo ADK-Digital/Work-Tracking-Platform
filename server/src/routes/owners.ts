@@ -21,32 +21,32 @@ const parseMockOwners = (): DirectoryPerson[] => {
       {
         googleId: 'mock-owner-001',
         email: 'alex.kim@example.org',
-        displayName: 'Alex Kim',
+        displayName: 'alex.kim@example.org',
       },
       {
         googleId: 'mock-owner-002',
         email: 'morgan.lee@example.org',
-        displayName: 'Morgan Lee',
+        displayName: 'morgan.lee@example.org',
       },
       {
         googleId: 'mock-owner-003',
         email: 'chris.nguyen@example.org',
-        displayName: 'Chris Nguyen',
+        displayName: 'chris.nguyen@example.org',
       },
       {
         googleId: 'mock-owner-004',
         email: 'avery.tran@example.org',
-        displayName: 'Avery Tran',
+        displayName: 'avery.tran@example.org',
       },
       {
         googleId: 'mock-owner-005',
         email: 'noah.diaz@example.org',
-        displayName: 'Noah Diaz',
+        displayName: 'noah.diaz@example.org',
       },
       {
         googleId: 'mock-owner-006',
         email: 'kira.james@example.org',
-        displayName: 'Kira James',
+        displayName: 'kira.james@example.org',
       },
     ].sort(compareOwners);
   }
@@ -58,12 +58,15 @@ const parseMockOwners = (): DirectoryPerson[] => {
     }
 
     return parsed
-      .filter((item): item is DirectoryPerson => Boolean(item?.googleId && item?.email && item?.displayName))
-      .map((item) => ({
-        googleId: item.googleId,
-        email: item.email.toLowerCase(),
-        displayName: item.displayName,
-      }))
+      .filter((item): item is DirectoryPerson => Boolean(item?.googleId && item?.email))
+      .map((item) => {
+        const email = item.email.toLowerCase();
+        return {
+          googleId: item.googleId,
+          email,
+          displayName: email,
+        };
+      })
       .sort(compareOwners);
   } catch (error) {
     console.error('Failed to parse OWNER_DIRECTORY_MOCK_JSON', error);

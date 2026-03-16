@@ -58,23 +58,12 @@ const parseMockOwners = (): DirectoryPerson[] => {
     }
 
     return parsed
-      .filter((item): item is DirectoryPerson => Boolean(item?.googleId && item?.email))
-      .map((item) => {
-        const firstName = typeof item.firstName === 'string' ? item.firstName.trim() : '';
-        const lastName = typeof item.lastName === 'string' ? item.lastName.trim() : '';
-        const fullName = [firstName, lastName].filter(Boolean).join(' ');
-        const displayName = typeof item.displayName === 'string' && item.displayName.trim().length > 0
-          ? item.displayName.trim()
-          : (fullName || item.email.toLowerCase());
-
-        return {
-          googleId: item.googleId,
-          email: item.email.toLowerCase(),
-          displayName,
-          ...(firstName ? { firstName } : {}),
-          ...(lastName ? { lastName } : {}),
-        };
-      })
+      .filter((item): item is DirectoryPerson => Boolean(item?.googleId && item?.email && item?.displayName))
+      .map((item) => ({
+        googleId: item.googleId,
+        email: item.email.toLowerCase(),
+        displayName: item.displayName,
+      }))
       .sort(compareOwners);
   } catch (error) {
     console.error('Failed to parse OWNER_DIRECTORY_MOCK_JSON', error);

@@ -1,5 +1,5 @@
 import { seedWorkItems } from "../data/seedData";
-import type { ActivityEvent, Attachment, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, TaskProjectOption, WorkItem } from "../types/workItem";
+import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type ActivityEvent, Attachment, Comment, CreateWorkItemInput, SearchFilters, SearchResult, SortOption, StatusFilter, TaskProjectOption, WorkItem } from "../types/workItem";
 import { generateId } from "../utils/ids";
 import { sortWorkItems } from "../utils/sorting";
 
@@ -9,8 +9,8 @@ const COMMENTS_STORAGE_KEY = "special-projects-tracker-comments";
 const TASK_PROJECT_OPTIONS_STORAGE_KEY = "special-projects-tracker-task-project-options";
 
 const TERMINAL_STATUS = {
-  purchase_request: new Set(["Received/Closed", "Rejected/Cancelled"]),
-  task_project: new Set(["Done", "Cancelled"])
+  purchase_request: new Set(["completed"]),
+  task_project: new Set(["completed"])
 };
 
 const randomLatency = () => 200 + Math.floor(Math.random() * 200);
@@ -267,6 +267,12 @@ export const workItemsLocalService = {
   },
 
 
+  async listStatuses(type?: WorkItem["type"]): Promise<Array<{ key: string; label: string; sortOrder: number }>> {
+    if (type === "purchase_request") return PURCHASE_REQUEST_STATUSES;
+    if (type === "task_project") return TASK_PROJECT_STATUSES;
+    return [...PURCHASE_REQUEST_STATUSES, ...TASK_PROJECT_STATUSES];
+  },
+
   async listTaskProjectOptions(): Promise<TaskProjectOption[]> {
     return withLatency(() => readTaskProjectOptions().sort((a, b) => a.name.localeCompare(b.name)));
   },
@@ -362,6 +368,10 @@ export const workItemsLocalService = {
 
       return updated;
     });
+  },
+
+  async completeWorkItem(id: string): Promise<WorkItem> {
+    return this.updateWorkItem(id, { status: "completed" });
   },
 
   async softDeleteWorkItem(id: string): Promise<void> {

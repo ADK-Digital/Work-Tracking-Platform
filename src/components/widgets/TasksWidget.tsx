@@ -41,7 +41,7 @@ const defaultForm: FormState = {
   title: "",
   requester: "",
   ownerGoogleId: "",
-  status: "Backlog",
+  status: "submitted",
   category: "project",
   tags: "",
   description: "",
@@ -112,7 +112,7 @@ export const TasksWidget = ({
       { label: "All", value: "all" },
       { label: "Open", value: "open" },
       { label: "Closed", value: "closed" },
-      ...TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status })),
+      ...TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key })),
     ],
     [],
   );
@@ -228,6 +228,12 @@ export const TasksWidget = ({
     await loadItems();
   };
 
+  const handleComplete = async (id: string) => {
+    await workItemsService.completeWorkItem(id);
+    notify("Completed");
+    await loadItems();
+  };
+
   const handleDelete = async (id: string) => {
     await workItemsService.softDeleteWorkItem(id);
     notify("Deleted");
@@ -286,12 +292,12 @@ export const TasksWidget = ({
                   </div>
                   <div className="flex items-center gap-2">
                     {item.deleted ? <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Deleted</span> : null}
-                    <Badge status={item.status} />
+                    <Badge status={item.status} label={item.statusLabel} />
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-4">
                   <Select
-                    options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))}
+                    options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))}
                     value={item.status}
                     disabled={!canManage}
                     onChange={(e) => void updateInline(item.id, { status: e.target.value as TaskProjectStatus })}
@@ -314,8 +320,8 @@ export const TasksWidget = ({
                       Restore
                     </Button>
                   ) : (
-                    <Button variant="danger" onClick={() => void handleDelete(item.id)} disabled={!canManage}>
-                      Delete
+                    <Button onClick={() => void handleComplete(item.id)} disabled={!canManage || item.deleted || item.status === "completed"}>
+                      Complete
                     </Button>
                   )}
                 </div>
@@ -330,7 +336,7 @@ export const TasksWidget = ({
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
           <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...ownerOptions.map((owner) => ({ label: owner.displayName, value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
-          <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status, value: status }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
+          <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select
             label="Project"
             value={form.projectName}
@@ -368,11 +374,14 @@ export const TasksWidget = ({
             />
           </label>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => void submit()} disabled={!canManage}>{editing ? "Save Changes" : "Create"}</Button>
+        <div className="mt-4 flex justify-between gap-2">
+          <div>
+            {editing ? (<Button variant="danger" onClick={() => void handleDelete(editing.id)} disabled={!canManage}>Delete</Button>) : null}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={() => void submit()} disabled={!canManage}>{editing ? "Save Changes" : "Create"}</Button>
+          </div>
         </div>
       </Modal>
     </>

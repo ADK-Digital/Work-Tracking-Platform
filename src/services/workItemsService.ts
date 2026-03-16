@@ -75,6 +75,18 @@ export const workItemsService = {
     }
   },
 
+  async listStatuses(...args: Parameters<typeof baseService.listStatuses>) {
+    try {
+      return await baseService.listStatuses(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+
   async listTaskProjectOptions(...args: Parameters<typeof baseService.listTaskProjectOptions>) {
     try {
       return await baseService.listTaskProjectOptions(...args);
@@ -177,6 +189,18 @@ export const workItemsService = {
       throw error;
     }
   },
+  async completeWorkItem(...args: Parameters<typeof baseService.completeWorkItem>) {
+    try {
+      return await baseService.completeWorkItem(...args);
+    } catch (error) {
+      if (useApi) {
+        reportApiError(error);
+      }
+
+      throw error;
+    }
+  },
+
   async softDeleteWorkItem(...args: Parameters<typeof baseService.softDeleteWorkItem>) {
     try {
       return await baseService.softDeleteWorkItem(...args);

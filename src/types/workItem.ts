@@ -1,25 +1,28 @@
 export type WorkItemType = "purchase_request" | "task_project";
 
-export const PURCHASE_REQUEST_STATUSES = [
-  "New",
-  "Waiting on Info",
-  "Submitted",
-  "Approved",
-  "Ordered",
-  "Received/Closed",
-  "Rejected/Cancelled"
-] as const;
+export type WorkItemStatusDefinition = {
+  key: string;
+  label: string;
+  sortOrder: number;
+};
 
-export const TASK_PROJECT_STATUSES = [
-  "Backlog",
-  "In Progress",
-  "Blocked",
-  "Done",
-  "Cancelled"
-] as const;
+export const PURCHASE_REQUEST_STATUSES: WorkItemStatusDefinition[] = [
+  { key: "submitted", label: "Submitted", sortOrder: 1 },
+  { key: "quote_requested", label: "Quote Requested", sortOrder: 2 },
+  { key: "quote_received", label: "Quote Received", sortOrder: 3 },
+  { key: "ordered", label: "Ordered", sortOrder: 4 },
+  { key: "completed", label: "Completed", sortOrder: 5 },
+];
 
-export type PurchaseRequestStatus = (typeof PURCHASE_REQUEST_STATUSES)[number];
-export type TaskProjectStatus = (typeof TASK_PROJECT_STATUSES)[number];
+export const TASK_PROJECT_STATUSES: WorkItemStatusDefinition[] = [
+  { key: "submitted", label: "Submitted", sortOrder: 1 },
+  { key: "in_progress", label: "In Progress", sortOrder: 2 },
+  { key: "on_hold", label: "On Hold", sortOrder: 3 },
+  { key: "completed", label: "Completed", sortOrder: 4 },
+];
+
+export type PurchaseRequestStatus = string;
+export type TaskProjectStatus = string;
 
 export interface WorkItemOwner {
   ownerGoogleId: string;
@@ -33,6 +36,8 @@ interface WorkItemBase extends WorkItemOwner {
   title: string;
   description?: string;
   status: string;
+  statusLabel?: string;
+  statusSortOrder?: number;
   priority?: number;
   requester: string;
   createdAt: string;

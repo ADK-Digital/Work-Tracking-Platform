@@ -148,7 +148,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const searchingViewEnabled = activeQuery.length > 0;
 
   const statusOptions = useMemo(() => {
-    const allStatuses = [...PURCHASE_REQUEST_STATUSES, ...TASK_PROJECT_STATUSES];
+    const allStatuses = [...PURCHASE_REQUEST_STATUSES, ...TASK_PROJECT_STATUSES].map((status) => status.key);
     return ["all", ...new Set(allStatuses)];
   }, []);
 
@@ -260,7 +260,7 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
             <select value={searchStatus} onChange={(event) => setSearchStatus(event.target.value)} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
-                  {status === "all" ? "All" : status}
+                  {status === "all" ? "All" : status.split("_").join(" ")}
                 </option>
               ))}
             </select>

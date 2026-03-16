@@ -13,6 +13,16 @@ const MAX_COMMENT_LENGTH = 5000;
 
 const parseIncludeDeleted = (value: unknown): boolean => value === 'true';
 
+
+const DEFAULT_STATUS_BY_TYPE: Record<WorkItemType, string> = {
+  [WorkItemType.purchase_request]: 'submitted',
+  [WorkItemType.task]: 'submitted',
+};
+
+const resolveAllowedStatus = async (type: WorkItemType, statusKey: string) => {
+  return prisma.workItemStatus.findFirst({ where: { workType: type, statusKey, isActive: true } });
+};
+
 type OwnerFields = {
   ownerGoogleId: string;
   ownerEmail: string;
@@ -127,7 +137,7 @@ const serializeWorkItem = (workItem: {
   type: WorkItemType;
   title: string;
   description: string | null;
-  status: string;
+  statusMeta: { statusKey: string; label: string; sortOrder: number } | null;
   projectName: string | null;
   ownerGoogleId: string;
   ownerEmail: string;
@@ -137,7 +147,12 @@ const serializeWorkItem = (workItem: {
   deletedAt: Date | null;
   createdBy: string | null;
   updatedBy: string | null;
-}) => workItem;
+}) => ({
+  ...workItem,
+  status: workItem.statusMeta?.statusKey ?? '',
+  statusLabel: workItem.statusMeta?.label ?? '',
+  statusSortOrder: workItem.statusMeta?.sortOrder ?? null,
+});
 
 const serializeComment = (comment: {
   id: string;
@@ -166,12 +181,13 @@ workItemsRouter.get('/work-items', async (req, res) => {
 
   const where: Prisma.WorkItemWhereInput = {
     ...(type ? { type: type as WorkItemType } : {}),
-    ...(includeDeleted ? {} : { deletedAt: null }),
+    ...(includeDeleted ? {} : { deletedAt: null, statusMeta: { is: { statusKey: { not: 'completed' } } } }),
   };
 
   const items = await prisma.workItem.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
+    orderBy: [{ statusMeta: { sortOrder: 'asc' } }, { createdAt: 'desc' }],
   });
 
   return res.json(items.map(serializeWorkItem));
@@ -205,7 +221,6 @@ workItemsRouter.get('/search', async (req, res) => {
     workItemQueryClauses.push(
       { title: { contains: q, mode: 'insensitive' } },
       { description: { contains: q, mode: 'insensitive' } },
-      { status: { contains: q, mode: 'insensitive' } },
       { ownerName: { contains: q, mode: 'insensitive' } },
       { ownerEmail: { contains: q, mode: 'insensitive' } },
       { createdBy: { contains: q, mode: 'insensitive' } },
@@ -229,7 +244,7 @@ workItemsRouter.get('/search', async (req, res) => {
 
   const workItemWhere: Prisma.WorkItemWhereInput = {
     ...(type ? { type: type as WorkItemType } : {}),
-    ...(status ? { status } : {}),
+    ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
     ...(ownerGoogleId ? { ownerGoogleId } : {}),
     ...(includeDeleted ? {} : { deletedAt: null }),
     ...(hasQuery ? { OR: workItemQueryClauses } : {}),
@@ -237,7 +252,8 @@ workItemsRouter.get('/search', async (req, res) => {
 
   const workItems = await prisma.workItem.findMany({
     where: workItemWhere,
-    orderBy: { updatedAt: 'desc' },
+    include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
+    orderBy: [{ statusMeta: { sortOrder: 'asc' } }, { updatedAt: 'desc' }],
     take: limit,
   });
 
@@ -249,7 +265,7 @@ workItemsRouter.get('/search', async (req, res) => {
           ...(includeDeleted ? {} : { deletedAt: null }),
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
-            ...(status ? { status } : {}),
+            ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
@@ -269,7 +285,7 @@ workItemsRouter.get('/search', async (req, res) => {
         where: {
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
-            ...(status ? { status } : {}),
+            ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
@@ -290,7 +306,7 @@ workItemsRouter.get('/search', async (req, res) => {
           filename: { contains: q, mode: 'insensitive' },
           workItem: {
             ...(type ? { type: type as WorkItemType } : {}),
-            ...(status ? { status } : {}),
+            ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
           },
@@ -304,7 +320,7 @@ workItemsRouter.get('/search', async (req, res) => {
     const matchedFields: string[] = [];
     if (!hasQuery || item.title.toLowerCase().includes(normalizedQ)) matchedFields.push('title');
     if (item.description?.toLowerCase().includes(normalizedQ)) matchedFields.push('description');
-    if (item.status.toLowerCase().includes(normalizedQ)) matchedFields.push('status');
+    if (item.statusMeta?.statusKey.toLowerCase().includes(normalizedQ) || item.statusMeta?.label.toLowerCase().includes(normalizedQ)) matchedFields.push('status');
     if (item.ownerName.toLowerCase().includes(normalizedQ) || item.ownerEmail.toLowerCase().includes(normalizedQ)) matchedFields.push('owner');
     if (item.createdBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('createdBy');
     if (item.updatedBy?.toLowerCase().includes(normalizedQ)) matchedFields.push('updatedBy');
@@ -382,7 +398,7 @@ workItemsRouter.get('/search', async (req, res) => {
 
 workItemsRouter.get('/work-items/:id', async (req, res) => {
   const workItemId = String(req.params.id);
-  const item = await prisma.workItem.findUnique({ where: { id: workItemId } });
+  const item = await prisma.workItem.findUnique({ where: { id: workItemId }, include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } } });
 
   if (!item || (item.deletedAt && req.authz?.role !== 'admin')) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -421,8 +437,10 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
     return res.status(400).json({ error: 'Title is required.' });
   }
 
-  if (!status || !status.trim()) {
-    return res.status(400).json({ error: 'Status is required.' });
+  const requestedStatus = (status && status.trim()) || DEFAULT_STATUS_BY_TYPE[type as WorkItemType];
+  const allowedStatus = await resolveAllowedStatus(type as WorkItemType, requestedStatus);
+  if (!allowedStatus) {
+    return res.status(400).json({ error: 'Invalid status for type.' });
   }
 
   if (projectName !== undefined && projectName !== null && typeof projectName !== 'string') {
@@ -432,11 +450,12 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
   const normalizedProjectName = normalizeProjectName(projectName);
 
   const item = await prisma.workItem.create({
+    include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
     data: {
       type: type as WorkItemType,
       title: title.trim(),
       description: description ?? null,
-      status: status.trim(),
+      statusMeta: { connect: { id: allowedStatus.id } },
       projectName: type === WorkItemType.task ? (normalizedProjectName ?? null) : null,
       ...ownerParsed.value,
       createdBy: actor,
@@ -457,7 +476,7 @@ workItemsRouter.post('/work-items', requireRole('admin'), async (req, res) => {
 workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) => {
   const actor = req.user!.email;
   const workItemId = String(req.params.id);
-  const existing = await prisma.workItem.findUnique({ where: { id: workItemId } });
+  const existing = await prisma.workItem.findUnique({ where: { id: workItemId }, include: { statusMeta: true } });
 
   if (!existing) {
     return res.status(404).json({ error: 'Work item not found.' });
@@ -491,6 +510,13 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     return res.status(400).json({ error: 'Status must be non-empty.' });
   }
 
+  const nextTypeForStatus = (type as WorkItemType | undefined) ?? existing.type;
+  const nextStatusKey = status !== undefined ? status.trim() : existing.statusMeta?.statusKey ?? DEFAULT_STATUS_BY_TYPE[nextTypeForStatus];
+  const nextStatus = await resolveAllowedStatus(nextTypeForStatus, nextStatusKey);
+  if (!nextStatus) {
+    return res.status(400).json({ error: 'Invalid status for type.' });
+  }
+
   if (projectName !== undefined && projectName !== null && typeof projectName !== 'string') {
     return res.status(400).json({ error: 'Project name must be a string when provided.' });
   }
@@ -502,12 +528,16 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
     ...(type !== undefined ? { type: type as WorkItemType } : {}),
     ...(title !== undefined ? { title: title.trim() } : {}),
     ...(description !== undefined ? { description } : {}),
-    ...(status !== undefined ? { status: status.trim() } : {}),
+    ...(status !== undefined ? { statusMeta: { connect: { id: nextStatus.id } } } : {}),
     ...(projectName !== undefined || (type !== undefined && (type as WorkItemType) === WorkItemType.purchase_request)
       ? { projectName: nextType === WorkItemType.task ? (normalizedPatchProjectName ?? null) : null }
       : {}),
     ...(ownerParsed.value ? ownerParsed.value : {}),
   };
+
+  if (type !== undefined && status === undefined) {
+    data.statusMeta = { connect: { id: nextStatus.id } };
+  }
 
   if (Object.keys(data).length > 0) {
     data.updatedBy = actor;
@@ -515,10 +545,10 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
 
   const events: { type: ActivityEventType; message: string }[] = [];
 
-  if (status !== undefined && status.trim() !== existing.status) {
+  if (status !== undefined && status.trim() !== (existing.statusMeta?.statusKey ?? '')) {
     events.push({
       type: ActivityEventType.status_changed,
-      message: `Status changed: ${existing.status} -> ${status.trim()}`,
+      message: `Status changed: ${existing.statusMeta?.statusKey ?? 'unknown'} -> ${status.trim()}`,
     });
   }
 
@@ -537,7 +567,11 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    const next = await tx.workItem.update({ where: { id: workItemId }, data });
+    const next = await tx.workItem.update({
+      where: { id: workItemId },
+      include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
+      data,
+    });
 
     if (events.length > 0) {
       await tx.activityEvent.createMany({
@@ -554,6 +588,60 @@ workItemsRouter.patch('/work-items/:id', requireRole('admin'), async (req, res) 
   });
 
   return res.json(serializeWorkItem(updated));
+});
+
+
+workItemsRouter.get('/work-item-statuses', async (req, res) => {
+  const type = typeof req.query.type === 'string' ? req.query.type : undefined;
+  if (type && !allowedTypes.has(type)) {
+    return res.status(400).json({ error: 'Invalid type query parameter.' });
+  }
+
+  const statuses = await prisma.workItemStatus.findMany({
+    where: {
+      ...(type ? { workType: type as WorkItemType } : {}),
+      isActive: true,
+    },
+    orderBy: [{ workType: 'asc' }, { sortOrder: 'asc' }],
+  });
+
+  return res.json(statuses);
+});
+
+workItemsRouter.post('/work-items/:id/complete', requireRole('admin'), async (req, res) => {
+  const actor = req.user!.email;
+  const workItemId = String(req.params.id);
+  const existing = await prisma.workItem.findUnique({ where: { id: workItemId }, include: { statusMeta: true } });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Work item not found.' });
+  }
+
+  const completedStatus = await resolveAllowedStatus(existing.type, 'completed');
+  if (!completedStatus) {
+    return res.status(400).json({ error: 'Completed status is not configured for this type.' });
+  }
+
+  const completed = await prisma.$transaction(async (tx) => {
+    const next = await tx.workItem.update({
+      where: { id: workItemId },
+      include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
+      data: { statusMeta: { connect: { id: completedStatus.id } }, updatedBy: actor },
+    });
+
+    await tx.activityEvent.create({
+      data: {
+        workItemId,
+        type: ActivityEventType.status_changed,
+        message: `Status changed: ${existing.statusMeta?.statusKey ?? 'unknown'} -> completed`,
+        actor,
+      },
+    });
+
+    return next;
+  });
+
+  return res.json(serializeWorkItem(completed));
 });
 
 workItemsRouter.delete('/work-items/:id', requireRole('admin'), async (req, res) => {
@@ -605,6 +693,7 @@ workItemsRouter.post('/work-items/:id/restore', requireRole('admin'), async (req
   const restored = await prisma.$transaction(async (tx) => {
     const next = await tx.workItem.update({
       where: { id: workItemId },
+      include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
       data: { deletedAt: null, updatedBy: actor },
     });
 
@@ -641,7 +730,8 @@ workItemsRouter.get('/export/work-items', requireRole('admin'), async (req, res)
       ...(type ? { type: type as WorkItemType } : {}),
       ...(includeDeleted ? {} : { deletedAt: null }),
     },
-    orderBy: { createdAt: 'desc' },
+    include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
+    orderBy: [{ statusMeta: { sortOrder: 'asc' } }, { createdAt: 'desc' }],
   });
 
   return res.json({ workItems: workItems.map(serializeWorkItem) });

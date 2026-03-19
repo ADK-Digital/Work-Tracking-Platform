@@ -27,6 +27,10 @@ const parseAllowedOrigins = (): Set<string> => {
 
   return new Set(configured);
 };
+// Health check endpoint for Docker/Podman
+app.get('/health', (req, res) => {
+res.status(200).send('OK');
+});
 const allowedOrigins = parseAllowedOrigins();
 const parseTrustProxyHops = (): number => {
   const trustProxyValue = process.env.TRUST_PROXY;

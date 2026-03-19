@@ -2,7 +2,6 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /frontend
 COPY package*.json ./
 RUN npm ci
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY index.html ./
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
@@ -14,7 +13,6 @@ ARG VITE_API_BASE_URL=/api
 ENV VITE_USE_API=${VITE_USE_API}
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN npm run build
-RUN rm /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
 
 FROM nginx:1.27-alpine
 COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf

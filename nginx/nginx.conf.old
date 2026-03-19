@@ -1,12 +1,6 @@
-client_body_temp_path /tmp/client_temp;
-proxy_temp_path       /tmp/proxy_temp;
-fastcgi_temp_path     /tmp/fastcgi_temp;
-uwsgi_temp_path       /tmp/uwsgi_temp;
-scgi_temp_path        /tmp/scgi_temp;
-
 server {
     listen 80;
-    server_name _;
+    server_name pm-dev.bscsd.org;
 
     # Redirect all HTTP to HTTPS
     return 301 https://$host$request_uri;
@@ -14,7 +8,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name _;
+    server_name pm-dev.bscsd.org;
 
     ssl_certificate     /etc/nginx/certs/pm-dev.bscsd.org.cer;
     ssl_certificate_key /etc/nginx/certs/pm-dev.bscsd.org.key;

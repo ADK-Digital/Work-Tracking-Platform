@@ -38,6 +38,7 @@ services:
 
   backend:
     container_name: bscsd-pm-backend
+    restart: unless-stopped
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -59,7 +60,7 @@ services:
       SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-lax}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
       GOOGLE_SERVICE_ACCOUNT_JSON: /app/secrets/bscsd-cms-directory-reader.json
-    read_only: false 
+    read_only: false
     tmpfs:
       - /tmp
     security_opt:
@@ -75,7 +76,6 @@ services:
       - /bin/sh
       - -c
       - |
-        # Inject the secrets into the environment variables
         npx prisma migrate deploy
         node --openssl-legacy-provider dist/server.js
     healthcheck:

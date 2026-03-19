@@ -79,7 +79,7 @@ services:
         npx prisma migrate deploy
         node --openssl-legacy-provider dist/server.js
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -103,13 +103,11 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
-      - label=disable 
+      - label=disable
     tmpfs:
       - /var/run
       - /tmp
       - /var/cache/nginx
-    security_opt:
-      - no-new-privileges:true
     cap_drop:
       - ALL
     cap_add:
@@ -129,8 +127,6 @@ volumes:
 
 secrets:
   bscsd-cms-directory-reader:
-    # Matching the filename referenced in your .env
     file: /home/local-admin/pm/bscsd-cms-directory-reader.json
-    target: bscsd-cms-directory-reader.json
   server-env:
     file: /home/local-admin/pm/server.env.prod

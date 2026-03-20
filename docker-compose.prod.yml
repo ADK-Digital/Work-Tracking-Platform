@@ -50,7 +50,7 @@ services:
       - /bin/sh
       - -c
       - |
-        until mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
+        until mc alias set local http://127.0.0.1:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
           sleep 2
         done
         until mc mb --ignore-existing local/attachments; do

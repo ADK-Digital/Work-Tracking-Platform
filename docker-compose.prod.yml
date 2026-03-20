@@ -52,7 +52,9 @@ services:
         until mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
           sleep 2
         done
-        mc mb --ignore-existing local/attachments
+        until mc mb --ignore-existing local/attachments; do
+          sleep 2
+        done
 
   backend:
     container_name: bscsd-pm-backend

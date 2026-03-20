@@ -116,6 +116,14 @@ attachmentsRouter.post('/work-items/:id/attachments', upload.single('file'), asy
   try {
     await putObject(storageKey, file.buffer, file.mimetype);
   } catch (error) {
+    console.error('[attachments] upload failed', {
+      workItemId: req.params.id,
+      attachmentId: attachment.id,
+      filename: safeFilename,
+      contentType: file.mimetype,
+      sizeBytes: file.size,
+      error: error instanceof Error ? error.message : error,
+    });
     await prisma.attachment.delete({ where: { id: attachment.id } });
     throw error;
   }

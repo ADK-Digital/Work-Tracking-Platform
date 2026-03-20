@@ -16,7 +16,43 @@ const getS3Lib = (): any => {
   return req('@aws-sdk/client-s3');
 };
 
-const isS3Configured = (): boolean => Boolean(process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY);
+const getEnv = (...names: string[]): string | undefined => {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const buildMinioEndpoint = (): string | undefined => {
+  const configuredEndpoint = getEnv('MINIO_ENDPOINT');
+  if (!configuredEndpoint) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(configuredEndpoint)) {
+    return configuredEndpoint;
+  }
+
+  const protocol = (getEnv('MINIO_USE_SSL') ?? 'false') === 'true' ? 'https' : 'http';
+  const port = getEnv('MINIO_PORT');
+  return port ? `${protocol}://${configuredEndpoint}:${port}` : `${protocol}://${configuredEndpoint}`;
+};
+
+const getS3Endpoint = (): string => requiredEnv('S3_ENDPOINT', buildMinioEndpoint() ?? 'http://minio:9000');
+const getS3Region = (): string => getEnv('S3_REGION') ?? 'us-east-1';
+const getS3AccessKey = (): string => requiredEnv('S3_ACCESS_KEY', getEnv('MINIO_ACCESS_KEY', 'MINIO_ROOT_USER'));
+const getS3SecretKey = (): string => requiredEnv('S3_SECRET_KEY', getEnv('MINIO_SECRET_KEY', 'MINIO_ROOT_PASSWORD'));
+const getBucket = (): string => requiredEnv('S3_BUCKET', getEnv('MINIO_BUCKET_ATTACHMENTS') ?? 'attachments');
+const isS3Configured = (): boolean =>
+  Boolean(
+    (getEnv('S3_ACCESS_KEY') && getEnv('S3_SECRET_KEY')) ||
+      (getEnv('MINIO_ACCESS_KEY') && getEnv('MINIO_SECRET_KEY')) ||
+      (getEnv('MINIO_ROOT_USER') && getEnv('MINIO_ROOT_PASSWORD')),
+  );
 
 const getClient = (): any => {
   if (cachedClient) {
@@ -25,19 +61,17 @@ const getClient = (): any => {
 
   const { S3Client } = getS3Lib();
   cachedClient = new S3Client({
-    endpoint: requiredEnv('S3_ENDPOINT', 'http://minio:9000'),
-    region: requiredEnv('S3_REGION', 'us-east-1'),
+    endpoint: getS3Endpoint(),
+    region: getS3Region(),
     credentials: {
-      accessKeyId: requiredEnv('S3_ACCESS_KEY'),
-      secretAccessKey: requiredEnv('S3_SECRET_KEY'),
+      accessKeyId: getS3AccessKey(),
+      secretAccessKey: getS3SecretKey(),
     },
     forcePathStyle: (process.env.S3_FORCE_PATH_STYLE ?? 'true') === 'true',
   });
 
   return cachedClient;
 };
-
-const getBucket = (): string => requiredEnv('S3_BUCKET', 'attachments');
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
   let timeoutHandle: NodeJS.Timeout | null = null;

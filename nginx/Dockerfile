@@ -1,5 +1,7 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /frontend
+ENV NODE_ENV=development
+
 COPY package*.json ./
 RUN npm ci --include=dev
 COPY nginx/nginx.conf /etc/nginx/nginx.conf

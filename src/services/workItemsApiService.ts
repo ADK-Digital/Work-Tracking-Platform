@@ -414,8 +414,4 @@ export const workItemsApiService = {
       };
     });
   },
-
-  async resetDemoData(): Promise<void> {
-    console.warn("Reset demo data is not supported in API mode.");
-  }
 };

@@ -6,20 +6,14 @@ import { TasksWidget } from "../components/widgets/TasksWidget";
 import { ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
-import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
+import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, workItemsService } from "../services/workItemsService";
 import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectOption } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 import { getOwnerDisplayName } from "../utils/owners";
 
-interface DashboardProps {
-  onReset: () => void;
-  resetting: boolean;
-  resetSignal: number;
-}
-
 type DashboardOwnerFilter = "me" | "all" | string;
 
-export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) => {
+export const Dashboard = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [authWarning, setAuthWarning] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -39,14 +33,10 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
   const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
 
-  const canManage = !isApiModeEnabled || authUser?.role === "admin";
-  const canUseDeletedFeatures = isApiModeEnabled && authUser?.role === "admin";
+  const canManage = authUser?.role === "admin";
+  const canUseDeletedFeatures = authUser?.role === "admin";
 
   const loadMe = async () => {
-    if (!isApiModeEnabled) {
-      return;
-    }
-
     try {
       const me = await loadAuthUser();
       setAuthUser(me);
@@ -219,21 +209,18 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
 
   return (
     <AppShell
-      onReset={onReset}
-      resetting={resetting}
-      showAuthControls={isApiModeEnabled}
       authUser={authUser}
       onSignOut={signOut}
     >
-      {isApiModeEnabled && authWarning ? (
+      {authWarning ? (
         <div className="mb-4 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-900">{authWarning}</div>
       ) : null}
-      {isApiModeEnabled && apiError ? (
+      {apiError ? (
         <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {apiError}
         </div>
       ) : null}
-      {isApiModeEnabled && forbiddenWarning ? (
+      {forbiddenWarning ? (
         <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">{forbiddenWarning}</div>
       ) : null}
 
@@ -369,15 +356,13 @@ export const Dashboard = ({ onReset, resetting, resetSignal }: DashboardProps) =
           </section>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <PurchaseRequestsWidget
-              resetSignal={resetSignal}
-              canManage={canManage}
+              canManage={Boolean(canManage)}
               includeDeleted={showDeleted}
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}
             />
             <TasksWidget
-              resetSignal={resetSignal}
-              canManage={canManage}
+              canManage={Boolean(canManage)}
               includeDeleted={showDeleted}
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}

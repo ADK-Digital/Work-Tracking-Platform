@@ -1,5 +1,4 @@
 import { apiFetch } from "./http";
-import { isApiModeEnabled } from "./workItemsService";
 
 export type AuthRole = "admin" | "user";
 
@@ -11,10 +10,4 @@ export type AuthUser = {
   displayName?: string;
 };
 
-export const loadAuthUser = async (): Promise<AuthUser | null> => {
-  if (!isApiModeEnabled) {
-    return null;
-  }
-
-  return apiFetch<AuthUser>("/api/me");
-};
+export const loadAuthUser = async (): Promise<AuthUser | null> => apiFetch<AuthUser>("/api/me");

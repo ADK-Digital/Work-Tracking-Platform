@@ -48,13 +48,11 @@ const defaultForm: FormState = {
 
 
 export const PurchaseRequestsWidget = ({
-  resetSignal,
   canManage,
   includeDeleted = false,
   canRestore = false,
   selectedOwnerIdentity = null
 }: {
-  resetSignal: number;
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
@@ -95,7 +93,7 @@ export const PurchaseRequestsWidget = ({
 
   useEffect(() => {
     void loadItems();
-  }, [filter, sort, resetSignal, includeDeleted]);
+  }, [filter, sort, includeDeleted]);
 
   useEffect(() => {
     const loadOwners = async () => {

@@ -8,7 +8,7 @@ import { Modal } from "../components/ui/Modal";
 import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
 import { type AuthUser, loadAuthUser } from "../services/authService";
-import { API_FORBIDDEN_EVENT, isApiModeEnabled, workItemsService } from "../services/workItemsService";
+import { API_FORBIDDEN_EVENT, workItemsService } from "../services/workItemsService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import {
   PURCHASE_REQUEST_STATUSES,
@@ -24,11 +24,6 @@ import {
 import { formatDate, formatDateTime } from "../utils/dates";
 import { formatOwnerLabel } from "../utils/owners";
 
-interface WorkItemDetailPageProps {
-  onReset: () => void;
-  resetting: boolean;
-}
-
 type FormState = {
   title: string;
   description: string;
@@ -38,7 +33,7 @@ type FormState = {
   newProjectName: string;
 };
 
-export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPageProps) => {
+export const WorkItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<WorkItem | null>(null);
@@ -58,11 +53,11 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { notify } = useToast();
-  const canManage = !isApiModeEnabled || authUser?.role === "admin";
-  const canViewDeleted = isApiModeEnabled && authUser?.role === "admin";
-  const canComment = !isApiModeEnabled || Boolean(authUser);
-  const canManageAttachments = !isApiModeEnabled ? false : Boolean(authUser);
-  const isAdmin = !isApiModeEnabled || authUser?.role === "admin";
+  const canManage = authUser?.role === "admin";
+  const canViewDeleted = authUser?.role === "admin";
+  const canComment = Boolean(authUser);
+  const canManageAttachments = Boolean(authUser);
+  const isAdmin = authUser?.role === "admin";
 
   const statusOptions = useMemo(
     () =>
@@ -111,10 +106,6 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
   useEffect(() => {
     const loadMe = async () => {
-      if (!isApiModeEnabled) {
-        return;
-      }
-
       try {
         const me = await loadAuthUser();
         setAuthUser(me);
@@ -168,7 +159,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
 
   const handleUploadAttachment = async () => {
-    if (!item || !attachmentFile || !isApiModeEnabled) {
+    if (!item || !attachmentFile) {
       return;
     }
 
@@ -282,8 +273,8 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
   };
 
   return (
-    <AppShell onReset={onReset} resetting={resetting}>
-      {isApiModeEnabled && forbiddenWarning ? (
+    <AppShell authUser={authUser}>
+      {forbiddenWarning ? (
         <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">{forbiddenWarning}</div>
       ) : null}
       {loading ? (
@@ -450,12 +441,6 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
 
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
             <h3 className="text-base font-semibold text-slate-900">Attachments</h3>
-            {!isApiModeEnabled ? (
-              <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Attachments require API mode.
-              </div>
-            ) : null}
-
             {attachmentError ? (
               <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{attachmentError}</div>
             ) : null}
@@ -495,7 +480,7 @@ export const WorkItemDetailPage = ({ onReset, resetting }: WorkItemDetailPagePro
               </ul>
             )}
 
-            {isApiModeEnabled && canManageAttachments ? (
+            {canManageAttachments ? (
               <div className="mt-4">
                 <label className="block text-sm">
                   <span className="mb-1 block font-medium text-slate-700">Upload attachment</span>

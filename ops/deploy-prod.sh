@@ -7,7 +7,7 @@ echo "Pulling latest code..."
 git pull
 
 echo "Rebuilding and starting production stack..."
-docker compose -f docker-compose.prod.yml up -d --build
+sudo podman-compose -f docker-compose.prod.yml up -d --build
 
 echo "Current container status:"
-docker ps
+sudo podman ps

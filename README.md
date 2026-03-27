@@ -2,22 +2,13 @@
 
 An internal Asana-lite style project with a **Vite + React + TypeScript** frontend prototype and a **Node.js + Express + Prisma + Postgres** backend.
 
-## Frontend modes
+## Frontend mode
 
-- **Default mode (`localStorage`)**: no backend required.
-- **API mode**: enabled with `VITE_USE_API=true` and points to the backend at `VITE_API_BASE_URL`.
+The frontend runs against the backend API and uses `VITE_API_BASE_URL` for requests.
 
 ### Frontend environment variables
 
-- `VITE_USE_API` (`"true" | "false"`) — default: `"false"`
 - `VITE_API_BASE_URL` — default: `"http://localhost:3001"`
-
-## Frontend quick start (default localStorage mode)
-
-```bash
-npm install
-npm run dev
-```
 
 ## Backend + API mode setup
 
@@ -128,16 +119,14 @@ If group env vars are not set, the app falls back to domain + `ADMIN_EMAILS` beh
 5. Verify an admin can create, update, and delete work items.
 6. Verify activity entries still capture actor email after admin mutations.
 
-### 5) Run frontend in API mode
+### 5) Run frontend
 
 In a separate terminal (project root):
 
 ```bash
 npm install
-VITE_USE_API=true VITE_API_BASE_URL=http://localhost:3001 npm run dev
+VITE_API_BASE_URL=http://localhost:3001 npm run dev
 ```
-
-> Note: default frontend behavior remains `localStorage` unless `VITE_USE_API=true` is set.
 
 ## API endpoints
 

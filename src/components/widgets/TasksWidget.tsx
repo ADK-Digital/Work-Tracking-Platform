@@ -50,7 +50,6 @@ const defaultForm: FormState = {
 };
 
 export const TasksWidget = ({
-  resetSignal,
   canManage,
   includeDeleted = false,
   canRestore = false,
@@ -58,7 +57,6 @@ export const TasksWidget = ({
   projectFilter = "all",
   onProjectOptionsRefresh,
 }: {
-  resetSignal: number;
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
@@ -101,7 +99,7 @@ export const TasksWidget = ({
 
   useEffect(() => {
     void loadItems();
-  }, [filter, sort, resetSignal, includeDeleted]);
+  }, [filter, sort, includeDeleted]);
 
   useEffect(() => {
     const loadOwners = async () => {

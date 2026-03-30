@@ -8,7 +8,7 @@ The frontend runs against the backend API and uses `VITE_API_BASE_URL` for reque
 
 ### Frontend environment variables
 
-- `VITE_API_BASE_URL` — default: `"http://localhost:3001"`
+- `VITE_API_BASE_URL` — default: `"/api"` (for production/nginx and local dev via Vite proxy)
 
 ## Backend + API mode setup
 
@@ -125,7 +125,7 @@ In a separate terminal (project root):
 
 ```bash
 npm install
-VITE_API_BASE_URL=http://localhost:3001 npm run dev
+npm run dev
 ```
 
 ## API endpoints

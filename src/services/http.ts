@@ -9,19 +9,40 @@ export class ApiError extends Error {
 }
 
 const isAbsoluteHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+const trimToUndefined = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
 
-const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-const defaultApiBaseUrl = import.meta.env.DEV ? "http://localhost:3001" : window.location.origin;
+const configuredApiBaseUrl = trimToUndefined(import.meta.env.VITE_API_BASE_URL);
 
-// VITE_API_BASE_URL may be set to a relative path (e.g. /api) in production when nginx
-// reverse-proxies backend requests on the same origin.
+// Keep API_BASE_URL origin-safe for link composition usages elsewhere in the app.
 export const API_BASE_URL =
   configuredApiBaseUrl && isAbsoluteHttpUrl(configuredApiBaseUrl)
     ? configuredApiBaseUrl
-    : defaultApiBaseUrl;
+    : window.location.origin;
+
+const buildRelativeApiPath = (basePath: string, requestPath: string): string => {
+  const normalizedBasePath = basePath.startsWith("/") ? basePath : `/${basePath}`;
+  const normalizedRequestPath = requestPath.startsWith("/") ? requestPath : `/${requestPath}`;
+
+  if (
+    normalizedRequestPath === normalizedBasePath ||
+    normalizedRequestPath.startsWith(`${normalizedBasePath}/`)
+  ) {
+    return normalizedRequestPath;
+  }
+
+  const strippedBasePath = normalizedBasePath.replace(/\/$/, "");
+  return `${strippedBasePath}${normalizedRequestPath}`;
+};
 
 const buildUrl = (path: string, query?: Record<string, string | number | boolean | undefined>): string => {
-  const url = new URL(path, API_BASE_URL);
+  const url = configuredApiBaseUrl
+    ? isAbsoluteHttpUrl(configuredApiBaseUrl)
+      ? new URL(path, configuredApiBaseUrl)
+      : new URL(buildRelativeApiPath(configuredApiBaseUrl, path), window.location.origin)
+    : new URL(path, window.location.origin);
 
   if (query) {
     Object.entries(query).forEach(([key, value]) => {

@@ -151,5 +151,3 @@ volumes:
 secrets:
   bscsd-cms-directory-reader:
     file: /home/local-admin/pm/bscsd-cms-directory-reader.json
-  server-env:
-    file: /home/local-admin/pm/server.env.prod

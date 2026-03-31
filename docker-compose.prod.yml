@@ -10,7 +10,7 @@ services:
       - POSTGRES_PASSWORD=tracker
       - POSTGRES_DB=special_projects
     volumes:
-      - bscsd-pm_postgres_data:/var/lib/postgresql/data
+      - /var/lib/docker/volumes/bscsd-pm_bscsd-pm_postgres_data/_data:/var/lib/postgresql/data:Z
       - /var/home/local-admin/backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tracker -d special_projects"]

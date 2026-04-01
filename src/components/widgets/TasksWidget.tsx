@@ -70,6 +70,8 @@ export const TasksWidget = ({
   const [editing, setEditing] = useState<TaskProjectItem | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedAttachments, setSelectedAttachments] = useState<File[]>([]);
   const { notify } = useToast();
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
@@ -154,6 +156,8 @@ export const TasksWidget = ({
   const openCreate = () => {
     setEditing(null);
     setErrors({});
+    setSubmitError(null);
+    setSelectedAttachments([]);
     setForm(defaultForm);
     setModalOpen(true);
   };
@@ -161,6 +165,8 @@ export const TasksWidget = ({
   const openEdit = (item: TaskProjectItem) => {
     setEditing(item);
     setErrors({});
+    setSubmitError(null);
+    setSelectedAttachments([]);
     setForm({
       title: item.title,
       ownerGoogleId: item.ownerGoogleId,
@@ -225,16 +231,30 @@ export const TasksWidget = ({
       projectName,
     };
 
-    if (editing) {
-      await workItemsService.updateWorkItem(editing.id, payload);
-      notify("Updated");
-    } else {
-      await workItemsService.createWorkItem(payload);
-      notify("Created");
-    }
+    setSubmitError(null);
 
-    setModalOpen(false);
-    await loadItems();
+    try {
+      const workItemId = editing
+        ? (await workItemsService.updateWorkItem(editing.id, payload)).id
+        : (await workItemsService.createWorkItem(payload)).id;
+
+      const uploadResults = await Promise.allSettled(
+        selectedAttachments.map((file) => workItemsService.uploadAttachment(workItemId, file)),
+      );
+      const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
+
+      if (editing) {
+        notify(failedUploads > 0 ? `Updated, but ${failedUploads} attachment(s) failed to upload` : "Updated");
+      } else {
+        notify(failedUploads > 0 ? `Created, but ${failedUploads} attachment(s) failed to upload` : "Created");
+      }
+
+      setModalOpen(false);
+      setSelectedAttachments([]);
+      await loadItems();
+    } catch {
+      setSubmitError("Could not save work item. Please review fields and try again.");
+    }
   };
 
   const updateInline = async (id: string, patch: Partial<TaskProjectItem>) => {
@@ -393,7 +413,24 @@ export const TasksWidget = ({
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </label>
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1 block font-medium text-slate-700">Attachments (Optional)</span>
+            <input
+              type="file"
+              multiple
+              className="block w-full text-sm"
+              onChange={(e) => setSelectedAttachments(Array.from(e.target.files ?? []))}
+            />
+            {selectedAttachments.length > 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Selected: {selectedAttachments.map((file) => file.name).join(", ")}
+              </p>
+            ) : null}
+          </label>
         </div>
+        {submitError ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{submitError}</div>
+        ) : null}
         <div className="mt-4 flex justify-between gap-2">
           <div>
             {editing ? (<Button variant="danger" onClick={() => void handleDelete(editing.id)} disabled={!canManage}>Delete</Button>) : null}

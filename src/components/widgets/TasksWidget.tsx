@@ -459,11 +459,11 @@ export const TasksWidget = ({
             {selectedAttachments.length > 0 ? (
               <ul className="mt-2 space-y-1 text-xs text-slate-500">
                 {selectedAttachments.map((file, index) => (
-                  <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+                  <li key={`${file.name}-${index}`} className="flex items-center gap-2">
                     <span className="truncate">{file.name}</span>
                     <button
                       type="button"
-                      className="text-rose-700 underline hover:text-rose-800"
+                      className="shrink-0 text-rose-700 hover:text-rose-800"
                       onClick={() => handleRemoveSelectedAttachment(index)}
                     >
                       Remove
@@ -483,11 +483,12 @@ export const TasksWidget = ({
               ) : (
                 <ul className="space-y-1 text-xs text-slate-700">
                   {existingAttachments.map((attachment) => (
-                    <li key={attachment.id} className="flex items-center justify-between gap-2">
+                    <li key={attachment.id} className="flex items-center gap-2">
                       <span className="truncate">{attachment.filename}</span>
                       <button
                         type="button"
-                        className="text-rose-700 underline hover:text-rose-800"
+                        className="shrink-0 text-sm text-rose-600 hover:text-rose-800"
+                        title="Delete attachment"
                         onClick={() => void handleDeleteExistingAttachment(attachment.id)}
                       >
                         🗑

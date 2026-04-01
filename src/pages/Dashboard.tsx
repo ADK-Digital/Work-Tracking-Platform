@@ -24,6 +24,7 @@ export const Dashboard = () => {
   const [searchType, setSearchType] = useState<"all" | "purchase_request" | "task_project">("all");
   const [searchStatus, setSearchStatus] = useState("all");
   const [searchOwner, setSearchOwner] = useState("all");
+  const [searchProject, setSearchProject] = useState<"all" | "none" | string>("all");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [dashboardOwnerFilter, setDashboardOwnerFilter] = useState<DashboardOwnerFilter>("me");
@@ -32,6 +33,7 @@ export const Dashboard = () => {
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
   const [projectFilterOptions, setProjectFilterOptions] = useState<string[]>([]);
+  const [searchProjectOptions, setSearchProjectOptions] = useState<string[]>([]);
 
   const canManage = authUser?.role === "admin";
   const canUseDeletedFeatures = authUser?.role === "admin";
@@ -66,6 +68,16 @@ export const Dashboard = () => {
     }
   };
 
+  const loadSearchProjectOptions = async () => {
+    try {
+      const options = await workItemsService.listTaskProjectOptions();
+      setSearchProjectOptions(options.map((option) => option.name));
+    } catch (error) {
+      console.error(error);
+      setSearchProjectOptions([]);
+    }
+  };
+
   const signOut = async () => {
     await apiFetch<void>("/auth/logout", { method: "POST" });
     setAuthUser(null);
@@ -88,6 +100,7 @@ export const Dashboard = () => {
         type: searchType === "all" ? undefined : searchType,
         status: searchStatus === "all" ? undefined : searchStatus,
         ownerGoogleId: searchOwner === "all" ? undefined : searchOwner,
+        projectName: searchProject === "all" ? undefined : searchProject === "none" ? "none" : searchProject,
         includeDeleted: canUseDeletedFeatures ? showDeleted : false,
         limit: 50,
       });
@@ -100,6 +113,7 @@ export const Dashboard = () => {
   useEffect(() => {
     void loadMe();
     void loadDirectory();
+    void loadSearchProjectOptions();
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -259,6 +273,16 @@ export const Dashboard = () => {
               <option value="all">All</option>
               {directoryOwners.map((owner) => (
                 <option key={owner.googleId} value={owner.googleId}>{getOwnerDisplayName(owner)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Project</span>
+            <select value={searchProject} onChange={(event) => setSearchProject(event.target.value)} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
+              <option value="all">All</option>
+              <option value="none">No Project</option>
+              {searchProjectOptions.map((projectName) => (
+                <option key={projectName} value={projectName}>{projectName}</option>
               ))}
             </select>
           </label>

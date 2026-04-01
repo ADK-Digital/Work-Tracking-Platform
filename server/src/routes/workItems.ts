@@ -220,6 +220,7 @@ workItemsRouter.get('/search', async (req, res) => {
   const type = typeof req.query.type === 'string' ? req.query.type : undefined;
   const status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
   const ownerGoogleId = typeof req.query.ownerGoogleId === 'string' ? req.query.ownerGoogleId.trim() : undefined;
+  const projectName = typeof req.query.projectName === 'string' ? req.query.projectName.trim() : undefined;
   const includeDeletedRequested = parseIncludeDeleted(req.query.includeDeleted);
   const includeDeleted = includeDeletedRequested && req.authz?.role === 'admin';
   const limit = parseLimit(req.query.limit);
@@ -236,6 +237,19 @@ workItemsRouter.get('/search', async (req, res) => {
   const hasQuery = normalizedQ.length > 0;
   const uuidQuery = hasQuery && isUuid(normalizedQ) ? normalizedQ : null;
   const dateQuery = hasQuery && isDateOnly(normalizedQ) ? normalizedQ : null;
+
+  const projectWhere: Prisma.WorkItemWhereInput | undefined =
+    projectName === undefined
+      ? undefined
+      : projectName === 'none'
+        ? {
+            type: WorkItemType.task,
+            OR: [{ projectName: null }, { projectName: '' }],
+          }
+        : {
+            type: WorkItemType.task,
+            projectName,
+          };
 
   const workItemQueryClauses: Prisma.WorkItemWhereInput[] = [];
   if (hasQuery) {
@@ -268,6 +282,7 @@ workItemsRouter.get('/search', async (req, res) => {
     ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
     ...(ownerGoogleId ? { ownerGoogleId } : {}),
     ...(includeDeleted ? {} : { deletedAt: null }),
+    ...(projectWhere ? { AND: [projectWhere] } : {}),
     ...(hasQuery ? { OR: workItemQueryClauses } : {}),
   };
 
@@ -289,6 +304,7 @@ workItemsRouter.get('/search', async (req, res) => {
             ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
+            ...(projectWhere ? { AND: [projectWhere] } : {}),
           },
           OR: [
             { body: { contains: q, mode: 'insensitive' } },
@@ -309,6 +325,7 @@ workItemsRouter.get('/search', async (req, res) => {
             ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
+            ...(projectWhere ? { AND: [projectWhere] } : {}),
           },
           OR: [
             { message: { contains: q, mode: 'insensitive' } },
@@ -330,6 +347,7 @@ workItemsRouter.get('/search', async (req, res) => {
             ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
             ...(ownerGoogleId ? { ownerGoogleId } : {}),
             ...(includeDeleted ? {} : { deletedAt: null }),
+            ...(projectWhere ? { AND: [projectWhere] } : {}),
           },
         },
         orderBy: { uploadedAt: 'desc' },

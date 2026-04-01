@@ -54,14 +54,14 @@ export const TasksWidget = ({
   canRestore = false,
   selectedOwnerIdentity = null,
   projectFilter = "all",
-  onProjectOptionsRefresh,
+  onProjectFilterOptionsChange,
 }: {
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
   selectedOwnerIdentity?: OwnerIdentity | null;
   projectFilter?: "all" | "none" | string;
-  onProjectOptionsRefresh?: () => Promise<void> | void;
+  onProjectFilterOptionsChange?: (projectNames: string[]) => void;
 }) => {
   const [items, setItems] = useState<TaskProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,21 +140,44 @@ export const TasksWidget = ({
     [],
   );
 
-  const visibleItems = useMemo(() => {
-    const ownerFiltered = selectedOwnerIdentity
+  const ownerScopedItems = useMemo(
+    () =>
+      selectedOwnerIdentity
       ? items.filter((item) => workItemMatchesOwnerIdentity(item, selectedOwnerIdentity))
-      : items;
+      : items,
+    [items, selectedOwnerIdentity],
+  );
 
+  const projectFilterOptions = useMemo(() => {
+    const projectNames = new Set<string>();
+
+    for (const item of ownerScopedItems) {
+      const name = item.projectName?.trim();
+      if (!name) {
+        continue;
+      }
+
+      projectNames.add(name);
+    }
+
+    return [...projectNames].sort((a, b) => a.localeCompare(b));
+  }, [ownerScopedItems]);
+
+  useEffect(() => {
+    onProjectFilterOptionsChange?.(projectFilterOptions);
+  }, [onProjectFilterOptionsChange, projectFilterOptions]);
+
+  const visibleItems = useMemo(() => {
     if (projectFilter === "all") {
-      return ownerFiltered;
+      return ownerScopedItems;
     }
 
     if (projectFilter === "none") {
-      return ownerFiltered.filter((item) => !item.projectName?.trim());
+      return ownerScopedItems.filter((item) => !item.projectName?.trim());
     }
 
-    return ownerFiltered.filter((item) => item.projectName === projectFilter);
-  }, [items, projectFilter, selectedOwnerIdentity]);
+    return ownerScopedItems.filter((item) => item.projectName === projectFilter);
+  }, [ownerScopedItems, projectFilter]);
 
   const openCreate = () => {
     setEditing(null);
@@ -213,7 +236,6 @@ export const TasksWidget = ({
       const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
       const updatedOptions = await workItemsService.listTaskProjectOptions();
       setProjectOptions(updatedOptions);
-      await onProjectOptionsRefresh?.();
       return created.name;
     }
 

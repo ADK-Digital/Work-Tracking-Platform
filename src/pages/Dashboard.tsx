@@ -7,7 +7,7 @@ import { ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, workItemsService } from "../services/workItemsService";
-import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectOption } from "../types/workItem";
+import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 import { getOwnerDisplayName } from "../utils/owners";
 
@@ -31,7 +31,7 @@ export const Dashboard = () => {
   const [ownerDirectoryLoading, setOwnerDirectoryLoading] = useState(false);
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
-  const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
+  const [projectFilterOptions, setProjectFilterOptions] = useState<string[]>([]);
 
   const canManage = authUser?.role === "admin";
   const canUseDeletedFeatures = authUser?.role === "admin";
@@ -63,15 +63,6 @@ export const Dashboard = () => {
       setOwnerDirectoryError("Owner directory is unavailable; owner filter will be limited.");
     } finally {
       setOwnerDirectoryLoading(false);
-    }
-  };
-
-  const loadProjectOptions = async () => {
-    try {
-      const options = await workItemsService.listTaskProjectOptions();
-      setProjectOptions(options);
-    } catch {
-      setProjectOptions([]);
     }
   };
 
@@ -109,7 +100,6 @@ export const Dashboard = () => {
   useEffect(() => {
     void loadMe();
     void loadDirectory();
-    void loadProjectOptions();
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -206,6 +196,16 @@ export const Dashboard = () => {
       displayName: selectedOwner.displayName,
     };
   }, [authUser, currentOwnerDirectoryEntry, dashboardOwnerFilter, directoryOwners]);
+
+  useEffect(() => {
+    if (projectFilter === "all" || projectFilter === "none") {
+      return;
+    }
+
+    if (!projectFilterOptions.includes(projectFilter)) {
+      setProjectFilter("all");
+    }
+  }, [projectFilter, projectFilterOptions]);
 
   return (
     <AppShell
@@ -347,8 +347,8 @@ export const Dashboard = () => {
                 >
                   <option value="all">All</option>
                   <option value="none">No Project</option>
-                  {projectOptions.map((option) => (
-                    <option key={option.id} value={option.name}>{option.name}</option>
+                  {projectFilterOptions.map((projectName) => (
+                    <option key={projectName} value={projectName}>{projectName}</option>
                   ))}
                 </select>
               </label>
@@ -367,7 +367,7 @@ export const Dashboard = () => {
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}
               projectFilter={projectFilter}
-              onProjectOptionsRefresh={loadProjectOptions}
+              onProjectFilterOptionsChange={setProjectFilterOptions}
             />
           </div>
         </>

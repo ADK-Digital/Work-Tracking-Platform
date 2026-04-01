@@ -1,9 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
+import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
 import { PurchaseRequestsWidget } from "../components/widgets/PurchaseRequestsWidget";
 import { TasksWidget } from "../components/widgets/TasksWidget";
-import { ApiError, apiFetch } from "../services/http";
+import { API_BASE_URL, ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, workItemsService } from "../services/workItemsService";
@@ -32,6 +34,15 @@ export const Dashboard = () => {
   const [ownerDirectoryLoading, setOwnerDirectoryLoading] = useState(false);
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
   const [taskProjectItems, setTaskProjectItems] = useState<TaskProjectItem[]>([]);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx" | "json">("csv");
+  const [exportOwner, setExportOwner] = useState("all");
+  const [exportType, setExportType] = useState<"all" | "purchase_request" | "task_project">("all");
+  const [exportStatus, setExportStatus] = useState("all");
+  const [exportProject, setExportProject] = useState<"all" | "none" | string>("all");
+  const [exportIncludeDeleted, setExportIncludeDeleted] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const canManage = authUser?.role === "admin";
   const canUseDeletedFeatures = authUser?.role === "admin";
@@ -245,10 +256,104 @@ export const Dashboard = () => {
     }
   }, [searchProject, searchScopedProjectOptions]);
 
+  const effectiveExportOwner = useMemo(() => {
+    if (searchOwner !== "all") {
+      return searchOwner;
+    }
+
+    if (dashboardOwnerFilter !== "all" && dashboardOwnerFilter !== "me") {
+      return dashboardOwnerFilter;
+    }
+
+    return "all";
+  }, [dashboardOwnerFilter, searchOwner]);
+
+  const openExportModal = () => {
+    setExportFormat("csv");
+    setExportType(searchType);
+    setExportStatus(searchStatus);
+    setExportOwner(effectiveExportOwner);
+    setExportProject(searchProject);
+    setExportIncludeDeleted(canUseDeletedFeatures ? showDeleted : false);
+    setExportError(null);
+    setExportModalOpen(true);
+  };
+
+  const exportProjectOptions = useMemo(() => {
+    const projectNames = new Set<string>();
+
+    for (const item of taskProjectItems) {
+      const name = item.projectName?.trim();
+      if (!name) {
+        continue;
+      }
+
+      projectNames.add(name);
+    }
+
+    return [...projectNames].sort((a, b) => a.localeCompare(b));
+  }, [taskProjectItems]);
+
+  const runExport = async () => {
+    setExporting(true);
+    setExportError(null);
+
+    const params = new URLSearchParams();
+    params.set("format", exportFormat);
+
+    if (exportType !== "all") {
+      params.set("type", exportType === "task_project" ? "task" : exportType);
+    }
+
+    if (exportStatus !== "all") {
+      params.set("status", exportStatus);
+    }
+
+    if (exportOwner !== "all") {
+      params.set("ownerGoogleId", exportOwner);
+    }
+
+    if (exportProject !== "all") {
+      params.set("projectName", exportProject);
+    }
+
+    if (canUseDeletedFeatures && exportIncludeDeleted) {
+      params.set("includeDeleted", "true");
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/export/work-items?${params.toString()}`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const filename = `work-items-export-${new Date().toISOString().slice(0, 10)}.${exportFormat}`;
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+      setExportModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      setExportError("Could not export work items. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <AppShell
       authUser={authUser}
       onSignOut={signOut}
+      headerActions={authUser?.role === "admin" ? <Button variant="secondary" onClick={openExportModal}>Export</Button> : null}
     >
       {authWarning ? (
         <div className="mb-4 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-900">{authWarning}</div>
@@ -404,6 +509,65 @@ export const Dashboard = () => {
           </div>
         </>
       ) : null}
+
+      <Modal title="Export Work Items" open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
+        <div className="space-y-3">
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Format</span>
+            <select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as typeof exportFormat)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="csv">CSV</option>
+              <option value="xlsx">XLSX</option>
+              <option value="json">JSON</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Owner</span>
+            <select value={exportOwner} onChange={(event) => setExportOwner(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">All</option>
+              {directoryOwners.map((owner) => (
+                <option key={owner.googleId} value={owner.googleId}>{getOwnerDisplayName(owner)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Work Item Type</span>
+            <select value={exportType} onChange={(event) => setExportType(event.target.value as typeof exportType)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">Both</option>
+              <option value="purchase_request">Purchase Requests</option>
+              <option value="task_project">Tasks / Projects</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Status</span>
+            <select value={exportStatus} onChange={(event) => setExportStatus(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>{status === "all" ? "All" : status.split("_").join(" ")}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Project</span>
+            <select value={exportProject} onChange={(event) => setExportProject(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" disabled={exportType === "purchase_request"}>
+              <option value="all">All</option>
+              <option value="none">No Project</option>
+              {exportProjectOptions.map((projectName) => (
+                <option key={projectName} value={projectName}>{projectName}</option>
+              ))}
+            </select>
+          </label>
+          {canUseDeletedFeatures ? (
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={exportIncludeDeleted} onChange={(event) => setExportIncludeDeleted(event.target.checked)} />
+              Include deleted
+            </label>
+          ) : null}
+          {exportError ? <p className="text-sm text-rose-700">{exportError}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="secondary" onClick={() => setExportModalOpen(false)} disabled={exporting}>Cancel</Button>
+            <Button onClick={() => void runExport()} disabled={exporting}>{exporting ? "Exporting…" : "Export"}</Button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   );
 };

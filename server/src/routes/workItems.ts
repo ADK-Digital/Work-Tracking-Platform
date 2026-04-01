@@ -1,5 +1,6 @@
 import { ActivityEventType, Prisma, WorkItemType } from '@prisma/client';
 import { Router } from 'express';
+import { deflateRawSync } from 'zlib';
 import { getUserRole, requireRole } from '../authorization';
 import { prisma } from '../db';
 import { listGroupMembers } from '../googleDirectory';
@@ -103,6 +104,199 @@ const parseLimit = (value: unknown): number => {
   }
 
   return Math.min(200, Math.floor(parsed));
+};
+
+const csvEscape = (value: string | number | boolean | null): string => {
+  const stringValue = value === null ? '' : String(value);
+  if (!/[",\n]/.test(stringValue)) {
+    return stringValue;
+  }
+
+  return `"${stringValue.replace(/"/g, '""')}"`;
+};
+
+const toCsv = (rows: Array<Record<string, string | number | boolean | null>>): string => {
+  if (rows.length === 0) {
+    return '';
+  }
+
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.map((header) => csvEscape(header)).join(',')];
+
+  for (const row of rows) {
+    lines.push(headers.map((header) => csvEscape(row[header] ?? null)).join(','));
+  }
+
+  return lines.join('\n');
+};
+
+const xmlEscape = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const DOS_EPOCH_DATE = 0;
+const DOS_EPOCH_TIME = 0;
+
+const crc32Table = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let current = i;
+    for (let bit = 0; bit < 8; bit += 1) {
+      current = (current & 1) ? (0xedb88320 ^ (current >>> 1)) : (current >>> 1);
+    }
+
+    table[i] = current >>> 0;
+  }
+
+  return table;
+})();
+
+const crc32 = (buffer: Buffer): number => {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = (crc >>> 8) ^ crc32Table[(crc ^ byte) & 0xff];
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const createXlsxBuffer = (rows: Array<Record<string, string | number | boolean | null>>): Buffer => {
+  const headers = Object.keys(rows[0] ?? {});
+  const xmlRow = (values: string[]) =>
+    `<row>${values
+      .map((value) => `<c t="inlineStr"><is><t xml:space="preserve">${xmlEscape(value)}</t></is></c>`)
+      .join('')}</row>`;
+
+  const sheetRows = [xmlRow(headers)];
+  for (const row of rows) {
+    sheetRows.push(xmlRow(headers.map((header) => String(row[header] ?? ''))));
+  }
+
+  const files = [
+    {
+      path: '[Content_Types].xml',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        + '<Default Extension="xml" ContentType="application/xml"/>'
+        + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+        + '</Types>',
+    },
+    {
+      path: '_rels/.rels',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+        + '</Relationships>',
+    },
+    {
+      path: 'xl/workbook.xml',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        + '<sheets><sheet name="Work Items" sheetId="1" r:id="rId1"/></sheets>'
+        + '</workbook>',
+    },
+    {
+      path: 'xl/_rels/workbook.xml.rels',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+        + '</Relationships>',
+    },
+    {
+      path: 'xl/styles.xml',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        + '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
+        + '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
+        + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+        + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+        + '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
+        + '</styleSheet>',
+    },
+    {
+      path: 'xl/worksheets/sheet1.xml',
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        + `<sheetData>${sheetRows.join('')}</sheetData>`
+        + '</worksheet>',
+    },
+  ];
+
+  const localFileRecords: Buffer[] = [];
+  const centralDirectoryRecords: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const fileName = Buffer.from(file.path, 'utf8');
+    const uncompressed = Buffer.from(file.content, 'utf8');
+    const compressed = deflateRawSync(uncompressed);
+    const fileCrc = crc32(uncompressed);
+
+    const localHeader = Buffer.alloc(30 + fileName.length);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(8, 8);
+    localHeader.writeUInt16LE(DOS_EPOCH_TIME, 10);
+    localHeader.writeUInt16LE(DOS_EPOCH_DATE, 12);
+    localHeader.writeUInt32LE(fileCrc, 14);
+    localHeader.writeUInt32LE(compressed.length, 18);
+    localHeader.writeUInt32LE(uncompressed.length, 22);
+    localHeader.writeUInt16LE(fileName.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    fileName.copy(localHeader, 30);
+
+    const centralHeader = Buffer.alloc(46 + fileName.length);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0, 8);
+    centralHeader.writeUInt16LE(8, 10);
+    centralHeader.writeUInt16LE(DOS_EPOCH_TIME, 12);
+    centralHeader.writeUInt16LE(DOS_EPOCH_DATE, 14);
+    centralHeader.writeUInt32LE(fileCrc, 16);
+    centralHeader.writeUInt32LE(compressed.length, 20);
+    centralHeader.writeUInt32LE(uncompressed.length, 24);
+    centralHeader.writeUInt16LE(fileName.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    fileName.copy(centralHeader, 46);
+
+    localFileRecords.push(localHeader, compressed);
+    centralDirectoryRecords.push(centralHeader);
+    offset += localHeader.length + compressed.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralDirectoryRecords);
+  const endOfCentralDirectory = Buffer.alloc(22);
+  endOfCentralDirectory.writeUInt32LE(0x06054b50, 0);
+  endOfCentralDirectory.writeUInt16LE(0, 4);
+  endOfCentralDirectory.writeUInt16LE(0, 6);
+  endOfCentralDirectory.writeUInt16LE(files.length, 8);
+  endOfCentralDirectory.writeUInt16LE(files.length, 10);
+  endOfCentralDirectory.writeUInt32LE(centralDirectory.length, 12);
+  endOfCentralDirectory.writeUInt32LE(offset, 16);
+  endOfCentralDirectory.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localFileRecords, centralDirectory, endOfCentralDirectory]);
 };
 
 const isUuid = (value: string): boolean =>
@@ -753,6 +947,10 @@ workItemsRouter.post('/work-items/:id/restore', requireRole('admin'), async (req
 
 workItemsRouter.get('/export/work-items', requireRole('admin'), async (req, res) => {
   const { type } = req.query;
+  const format = typeof req.query.format === 'string' ? req.query.format : 'json';
+  const status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
+  const ownerGoogleId = typeof req.query.ownerGoogleId === 'string' ? req.query.ownerGoogleId.trim() : undefined;
+  const projectName = typeof req.query.projectName === 'string' ? req.query.projectName.trim() : undefined;
   const includeDeleted = parseIncludeDeleted(req.query.includeDeleted);
   const isAdmin = req.authz?.role === 'admin';
 
@@ -764,16 +962,70 @@ workItemsRouter.get('/export/work-items', requireRole('admin'), async (req, res)
     return res.status(400).json({ error: 'Invalid type query parameter.' });
   }
 
+  if (!['json', 'csv', 'xlsx'].includes(format)) {
+    return res.status(400).json({ error: 'Invalid format query parameter.' });
+  }
+
+  const projectWhere: Prisma.WorkItemWhereInput | undefined =
+    projectName === undefined
+      ? undefined
+      : projectName === 'none'
+        ? {
+            type: WorkItemType.task,
+            OR: [{ projectName: null }, { projectName: '' }],
+          }
+        : {
+            type: WorkItemType.task,
+            projectName,
+          };
+
   const workItems = await prisma.workItem.findMany({
     where: {
       ...(type ? { type: type as WorkItemType } : {}),
+      ...(status ? { statusMeta: { is: { statusKey: status } } } : {}),
+      ...(ownerGoogleId ? { ownerGoogleId } : {}),
+      ...(projectWhere ? { AND: [projectWhere] } : {}),
       ...(includeDeleted ? {} : { deletedAt: null }),
     },
     include: { statusMeta: { select: { statusKey: true, label: true, sortOrder: true } } },
     orderBy: [{ statusMeta: { sortOrder: 'asc' } }, { createdAt: 'desc' }],
   });
 
-  return res.json({ workItems: workItems.map(serializeWorkItem) });
+  const serialized = workItems.map(serializeWorkItem);
+  const rows = serialized.map((item) => ({
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    status: item.status,
+    statusLabel: item.statusLabel,
+    owner: item.ownerName,
+    ownerEmail: item.ownerEmail,
+    requestor: item.createdBy ?? '',
+    projectName: item.projectName ?? '',
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    deleted: Boolean(item.deletedAt),
+    description: item.description ?? '',
+  }));
+
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  if (format === 'json') {
+    res.setHeader('Content-Disposition', `attachment; filename="work-items-export-${dateStamp}.json"`);
+    return res.json({ workItems: serialized });
+  }
+
+  const csv = toCsv(rows);
+  if (format === 'csv') {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="work-items-export-${dateStamp}.csv"`);
+    return res.send(csv);
+  }
+
+  const workbookBuffer = createXlsxBuffer(rows);
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="work-items-export-${dateStamp}.xlsx"`);
+  return res.send(workbookBuffer);
 });
 
 workItemsRouter.get('/export/activity', requireRole('admin'), async (req, res) => {

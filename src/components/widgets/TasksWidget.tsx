@@ -53,20 +53,17 @@ export const TasksWidget = ({
   includeDeleted = false,
   canRestore = false,
   selectedOwnerIdentity = null,
-  projectFilter = "all",
-  onProjectFilterOptionsChange,
 }: {
   canManage: boolean;
   includeDeleted?: boolean;
   canRestore?: boolean;
   selectedOwnerIdentity?: OwnerIdentity | null;
-  projectFilter?: "all" | "none" | string;
-  onProjectFilterOptionsChange?: (projectNames: string[]) => void;
 }) => {
   const [items, setItems] = useState<TaskProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortOption>("status_priority");
+  const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TaskProjectItem | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
@@ -175,8 +172,14 @@ export const TasksWidget = ({
   }, [editing, form.projectName, projectOptions]);
 
   useEffect(() => {
-    onProjectFilterOptionsChange?.(projectFilterOptions);
-  }, [onProjectFilterOptionsChange, projectFilterOptions]);
+    if (projectFilter === "all" || projectFilter === "none") {
+      return;
+    }
+
+    if (!projectFilterOptions.includes(projectFilter)) {
+      setProjectFilter("all");
+    }
+  }, [projectFilter, projectFilterOptions]);
 
   const visibleItems = useMemo(() => {
     if (projectFilter === "all") {
@@ -366,6 +369,16 @@ export const TasksWidget = ({
                 { label: "Created (Newest)", value: "created_desc" },
                 { label: "Created (Oldest)", value: "created_asc" },
                 { label: "Status Priority", value: "status_priority" },
+              ]}
+            />
+            <Select
+              className="min-w-36"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              options={[
+                { label: "All Projects", value: "all" },
+                { label: "No Project", value: "none" },
+                ...projectFilterOptions.map((projectName) => ({ label: projectName, value: projectName })),
               ]}
             />
             <Button onClick={openCreate} disabled={!canManage}>Add New</Button>

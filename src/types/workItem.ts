@@ -147,4 +147,6 @@ export interface AttachmentSearchResult {
 
 export type SearchResult = WorkItemSearchResult | CommentSearchResult | ActivitySearchResult | AttachmentSearchResult;
 
-export type CreateWorkItemInput = Omit<PurchaseRequestItem, "id" | "createdAt" | "deleted"> | Omit<TaskProjectItem, "id" | "createdAt" | "deleted">;
+export type CreateWorkItemInput =
+  | Omit<PurchaseRequestItem, "id" | "createdAt" | "deleted" | "requester">
+  | Omit<TaskProjectItem, "id" | "createdAt" | "deleted" | "requester">;

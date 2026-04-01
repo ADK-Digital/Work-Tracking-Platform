@@ -317,7 +317,7 @@ export const WorkItemDetailPage = () => {
                 <p className="mt-1 text-sm text-slate-800">{formatOwnerLabel(item)}</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Requester</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Requestor</p>
                 <p className="mt-1 text-sm text-slate-800">{item.requester}</p>
               </div>
               <div>

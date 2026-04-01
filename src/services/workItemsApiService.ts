@@ -49,6 +49,7 @@ type BackendWorkItem = {
   ownerGoogleId: string;
   ownerEmail: string;
   ownerName: string;
+  createdBy?: string | null;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string | null;
@@ -132,7 +133,7 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
       statusLabel: item.statusLabel,
       statusSortOrder: item.statusSortOrder,
       priority: 2,
-      requester: "Unassigned",
+      requester: item.createdBy ?? "Unassigned",
       ownerGoogleId: item.ownerGoogleId,
       ownerEmail: item.ownerEmail,
       ownerName: item.ownerName,
@@ -155,7 +156,7 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
     statusLabel: item.statusLabel,
     statusSortOrder: item.statusSortOrder,
     priority: 2,
-    requester: "Unassigned",
+    requester: item.createdBy ?? "Unassigned",
     ownerGoogleId: item.ownerGoogleId,
     ownerEmail: item.ownerEmail,
     ownerName: item.ownerName,

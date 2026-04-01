@@ -147,6 +147,7 @@ const serializeWorkItem = (workItem: {
   deletedAt: Date | null;
   createdBy: string | null;
   updatedBy: string | null;
+  hasAttachments?: boolean;
 }) => ({
   ...workItem,
   status: workItem.statusMeta?.statusKey ?? '',
@@ -190,7 +191,27 @@ workItemsRouter.get('/work-items', async (req, res) => {
     orderBy: [{ statusMeta: { sortOrder: 'asc' } }, { createdAt: 'desc' }],
   });
 
-  return res.json(items.map(serializeWorkItem));
+  const attachmentCounts = await prisma.attachment.groupBy({
+    by: ['workItemId'],
+    where: {
+      workItemId: { in: items.map((item) => item.id) },
+      deletedAt: null,
+    },
+    _count: { _all: true },
+  });
+
+  const attachmentCountsByWorkItemId = new Map(
+    attachmentCounts.map((entry) => [entry.workItemId, entry._count._all]),
+  );
+
+  return res.json(
+    items.map((item) =>
+      serializeWorkItem({
+        ...item,
+        hasAttachments: (attachmentCountsByWorkItemId.get(item.id) ?? 0) > 0,
+      }),
+    ),
+  );
 });
 
 

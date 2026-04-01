@@ -53,6 +53,7 @@ type BackendWorkItem = {
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string | null;
+  hasAttachments?: boolean;
 };
 
 
@@ -143,7 +144,8 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
       vendor: "Unknown",
       amount: 0,
       budgetCode: "N/A",
-      poNumber: undefined
+      poNumber: undefined,
+      hasAttachments: Boolean(item.hasAttachments),
     };
   }
 
@@ -165,7 +167,8 @@ const normalizeWorkItem = (item: BackendWorkItem): WorkItem => {
     deleted: Boolean(item.deletedAt),
     category: "project",
     tags: [],
-    projectName: item.projectName ?? undefined
+    projectName: item.projectName ?? undefined,
+    hasAttachments: Boolean(item.hasAttachments),
   };
 };
 

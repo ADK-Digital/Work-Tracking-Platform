@@ -357,9 +357,16 @@ export const TasksWidget = ({
                 </div>
                 <div className="flex flex-wrap items-start justify-between gap-3 pr-28">
                   <div>
-                    <Link to={`/work-items/${item.id}`} className="cursor-pointer font-medium text-slate-900 hover:underline">
-                      {item.title}
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link to={`/work-items/${item.id}`} className="cursor-pointer font-medium text-slate-900 hover:underline">
+                        {item.title}
+                      </Link>
+                      {item.hasAttachments ? (
+                        <span aria-label="Has attachments" className="text-xs text-slate-400">
+                          📎
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-slate-500">
                       {item.category === "downtime" ? "Downtime" : "Project"} • Owner {formatOwnerLabel(item, ownerOptionsByGoogleId.get(item.ownerGoogleId))} • Created {formatDate(item.createdAt)}
                     </p>

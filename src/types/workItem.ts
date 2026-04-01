@@ -111,6 +111,7 @@ export interface SearchFilters {
   type?: WorkItemType;
   status?: string;
   ownerGoogleId?: string;
+  projectName?: string;
   includeDeleted?: boolean;
   limit?: number;
 }

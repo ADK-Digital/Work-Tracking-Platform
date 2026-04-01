@@ -371,6 +371,7 @@ export const workItemsApiService = {
         type: apiType,
         status: filters.status,
         ownerGoogleId: filters.ownerGoogleId,
+        projectName: filters.projectName,
         includeDeleted: filters.includeDeleted,
         limit: filters.limit ?? 50,
       },

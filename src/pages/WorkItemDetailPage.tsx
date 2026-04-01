@@ -43,7 +43,7 @@ export const WorkItemDetailPage = () => {
   const [commentError, setCommentError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
@@ -161,16 +161,19 @@ export const WorkItemDetailPage = () => {
 
 
   const handleUploadAttachment = async () => {
-    if (!item || !attachmentFile) {
+    if (!item || attachmentFiles.length === 0) {
       return;
     }
 
     setAttachmentError(null);
     setUploadingAttachment(true);
     try {
-      await workItemsService.uploadAttachment(item.id, attachmentFile);
-      setAttachmentFile(null);
-      notify("Attachment uploaded");
+      const uploadResults = await Promise.allSettled(
+        attachmentFiles.map((file) => workItemsService.uploadAttachment(item.id, file)),
+      );
+      const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
+      setAttachmentFiles([]);
+      notify(failedUploads > 0 ? `Uploaded, but ${failedUploads} attachment(s) failed` : "Attachment uploaded");
       await loadItemActivityAndComments();
     } catch {
       setAttachmentError("Could not upload attachment. Please check file size/type and try again.");
@@ -191,6 +194,24 @@ export const WorkItemDetailPage = () => {
     } catch {
       setAttachmentError("Could not delete attachment. Please try again.");
     }
+  };
+
+  const handleSelectAttachmentFiles = (files: FileList | null) => {
+    if (!files) return;
+    setAttachmentFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  const handleRemoveAttachmentFile = (indexToRemove: number) => {
+    setAttachmentFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleSelectEditAttachments = (files: FileList | null) => {
+    if (!files) return;
+    setEditSelectedAttachments((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  const handleRemoveEditSelectedAttachment = (indexToRemove: number) => {
+    setEditSelectedAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -502,12 +523,29 @@ export const WorkItemDetailPage = () => {
                   <span className="mb-1 block font-medium text-slate-700">Upload attachment</span>
                   <input
                     type="file"
+                    multiple
                     className="block w-full text-sm"
-                    onChange={(e) => setAttachmentFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) => handleSelectAttachmentFiles(e.target.files)}
                   />
                 </label>
+                {attachmentFiles.length > 0 ? (
+                  <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                    {attachmentFiles.map((file, index) => (
+                      <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          className="text-rose-700 underline hover:text-rose-800"
+                          onClick={() => handleRemoveAttachmentFile(index)}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <div className="mt-2 flex justify-end">
-                  <Button onClick={() => void handleUploadAttachment()} disabled={!attachmentFile || uploadingAttachment}>
+                  <Button onClick={() => void handleUploadAttachment()} disabled={attachmentFiles.length === 0 || uploadingAttachment}>
                     {uploadingAttachment ? "Uploading..." : "Upload"}
                   </Button>
                 </div>
@@ -576,12 +614,23 @@ export const WorkItemDetailPage = () => {
               type="file"
               multiple
               className="block w-full text-sm"
-              onChange={(e) => setEditSelectedAttachments(Array.from(e.target.files ?? []))}
+              onChange={(e) => handleSelectEditAttachments(e.target.files)}
             />
             {editSelectedAttachments.length > 0 ? (
-              <p className="mt-1 text-xs text-slate-500">
-                Selected: {editSelectedAttachments.map((file) => file.name).join(", ")}
-              </p>
+              <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                {editSelectedAttachments.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      className="text-rose-700 underline hover:text-rose-800"
+                      onClick={() => handleRemoveEditSelectedAttachment(index)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </label>
           <div className="md:col-span-2">
@@ -589,9 +638,20 @@ export const WorkItemDetailPage = () => {
             {attachments.length === 0 ? (
               <p className="text-xs text-slate-500">No attachments.</p>
             ) : (
-              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+              <ul className="space-y-1 text-xs text-slate-700">
                 {attachments.map((attachment) => (
-                  <li key={attachment.id}>{attachment.filename}</li>
+                  <li key={attachment.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{attachment.filename}</span>
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        className="text-rose-700 underline hover:text-rose-800"
+                        onClick={() => void handleDeleteAttachment(attachment.id)}
+                      >
+                        🗑
+                      </button>
+                    ) : null}
+                  </li>
                 ))}
               </ul>
             )}

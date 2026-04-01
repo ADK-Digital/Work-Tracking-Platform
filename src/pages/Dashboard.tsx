@@ -31,8 +31,6 @@ export const Dashboard = () => {
   const [directoryOwners, setDirectoryOwners] = useState<OwnerDirectoryEntry[]>([]);
   const [ownerDirectoryLoading, setOwnerDirectoryLoading] = useState(false);
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
-  const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
-  const [projectFilterOptions, setProjectFilterOptions] = useState<string[]>([]);
   const [taskProjectItems, setTaskProjectItems] = useState<TaskProjectItem[]>([]);
 
   const canManage = authUser?.role === "admin";
@@ -217,15 +215,6 @@ export const Dashboard = () => {
     };
   }, [authUser, currentOwnerDirectoryEntry, dashboardOwnerFilter, directoryOwners]);
 
-  useEffect(() => {
-    if (projectFilter === "all" || projectFilter === "none") {
-      return;
-    }
-
-    if (!projectFilterOptions.includes(projectFilter)) {
-      setProjectFilter("all");
-    }
-  }, [projectFilter, projectFilterOptions]);
 
   const searchScopedProjectOptions = useMemo(() => {
     const projectNames = new Set<string>();
@@ -397,20 +386,6 @@ export const Dashboard = () => {
               </label>
               {ownerDirectoryLoading ? <p className="text-sm text-slate-500">Loading owners…</p> : null}
               {ownerDirectoryError ? <p className="text-sm text-amber-700">{ownerDirectoryError}</p> : null}
-              <label className="text-sm">
-                <span className="mb-1 block font-medium text-slate-700">Tasks Project</span>
-                <select
-                  value={projectFilter}
-                  onChange={(event) => setProjectFilter(event.target.value)}
-                  className="min-w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="none">No Project</option>
-                  {projectFilterOptions.map((projectName) => (
-                    <option key={projectName} value={projectName}>{projectName}</option>
-                  ))}
-                </select>
-              </label>
             </div>
           </section>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -425,8 +400,6 @@ export const Dashboard = () => {
               includeDeleted={showDeleted}
               canRestore={canUseDeletedFeatures}
               selectedOwnerIdentity={selectedOwnerIdentity}
-              projectFilter={projectFilter}
-              onProjectFilterOptionsChange={setProjectFilterOptions}
             />
           </div>
         </>

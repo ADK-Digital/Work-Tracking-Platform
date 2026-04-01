@@ -46,6 +46,8 @@ export const WorkItemDetailPage = () => {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
+  const [editSelectedAttachments, setEditSelectedAttachments] = useState<File[]>([]);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [forbiddenWarning, setForbiddenWarning] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({ title: "", description: "", status: "submitted", ownerGoogleId: "", projectName: "", newProjectName: "" });
@@ -209,6 +211,8 @@ export const WorkItemDetailPage = () => {
     if (!item) return;
 
     setErrors({});
+    setEditSubmitError(null);
+    setEditSelectedAttachments([]);
     setForm({
       title: item.title,
       description: item.description ?? "",
@@ -245,23 +249,35 @@ export const WorkItemDetailPage = () => {
       }
     }
 
-    await workItemsService.updateWorkItem(item.id, {
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
-      status: form.status as WorkItem["status"],
-      ...(item.type === "task_project" ? { projectName: resolvedProjectName } : {}),
-      ...(ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)
-        ? {
-            ownerGoogleId: form.ownerGoogleId,
-            ownerEmail: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email,
-            ownerName: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email
-          }
-        : {})
-    });
+    setEditSubmitError(null);
 
-    notify("Updated");
-    setEditOpen(false);
-    await loadItemActivityAndComments();
+    try {
+      await workItemsService.updateWorkItem(item.id, {
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        status: form.status as WorkItem["status"],
+        ...(item.type === "task_project" ? { projectName: resolvedProjectName } : {}),
+        ...(ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)
+          ? {
+              ownerGoogleId: form.ownerGoogleId,
+              ownerEmail: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email,
+              ownerName: ownerOptions.find((owner) => owner.googleId === form.ownerGoogleId)!.email
+            }
+          : {})
+      });
+
+      const uploadResults = await Promise.allSettled(
+        editSelectedAttachments.map((file) => workItemsService.uploadAttachment(item.id, file)),
+      );
+      const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
+
+      notify(failedUploads > 0 ? `Updated, but ${failedUploads} attachment(s) failed to upload` : "Updated");
+      setEditOpen(false);
+      setEditSelectedAttachments([]);
+      await loadItemActivityAndComments();
+    } catch {
+      setEditSubmitError("Could not update work item. Please review fields and try again.");
+    }
   };
 
   const handleRestore = async () => {
@@ -554,7 +570,24 @@ export const WorkItemDetailPage = () => {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </label>
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1 block font-medium text-slate-700">Attachments (Optional)</span>
+            <input
+              type="file"
+              multiple
+              className="block w-full text-sm"
+              onChange={(e) => setEditSelectedAttachments(Array.from(e.target.files ?? []))}
+            />
+            {editSelectedAttachments.length > 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Selected: {editSelectedAttachments.map((file) => file.name).join(", ")}
+              </p>
+            ) : null}
+          </label>
         </div>
+        {editSubmitError ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{editSubmitError}</div>
+        ) : null}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setEditOpen(false)}>
             Cancel

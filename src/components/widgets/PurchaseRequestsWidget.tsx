@@ -24,7 +24,6 @@ type Filter = "all" | string;
 
 type FormState = {
   title: string;
-  requester: string;
   ownerGoogleId: string;
   status: PurchaseRequestStatus;
   vendor: string;
@@ -36,7 +35,6 @@ type FormState = {
 
 const defaultForm: FormState = {
   title: "",
-  requester: "",
   ownerGoogleId: "",
   status: "submitted",
   vendor: "",
@@ -151,7 +149,6 @@ export const PurchaseRequestsWidget = ({
     setErrors({});
     setForm({
       title: item.title,
-      requester: item.requester,
       ownerGoogleId: item.ownerGoogleId,
       status: item.status,
       vendor: item.vendor,
@@ -166,7 +163,6 @@ export const PurchaseRequestsWidget = ({
   const validate = (): boolean => {
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.title.trim()) nextErrors.title = "Title is required";
-    if (!form.requester.trim()) nextErrors.requester = "Requester is required";
     if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
     if (!form.vendor.trim()) nextErrors.vendor = "Vendor is required";
     if (!form.budgetCode.trim()) nextErrors.budgetCode = "Budget code is required";
@@ -190,7 +186,6 @@ export const PurchaseRequestsWidget = ({
     const payload = {
       type: "purchase_request" as const,
       title: form.title.trim(),
-      requester: form.requester.trim(),
       ownerGoogleId: selectedOwner.googleId,
       ownerEmail: selectedOwner.email,
       ownerName: getOwnerDisplayName(selectedOwner),
@@ -341,7 +336,6 @@ export const PurchaseRequestsWidget = ({
       >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
           <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...mergedItemOwnerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={PURCHASE_REQUEST_STATUSES.map((status) => ({ label: status.label, value: status.key }))} onChange={(e) => setForm({ ...form, status: e.target.value as PurchaseRequestStatus })} />
           <Input label="Vendor" value={form.vendor} error={errors.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />

@@ -198,7 +198,8 @@ export const WorkItemDetailPage = () => {
 
   const handleSelectAttachmentFiles = (files: FileList | null) => {
     if (!files) return;
-    setAttachmentFiles((prev) => [...prev, ...Array.from(files)]);
+    const nextFiles = Array.from(files);
+    setAttachmentFiles((prev) => [...prev, ...nextFiles]);
   };
 
   const handleRemoveAttachmentFile = (indexToRemove: number) => {
@@ -207,7 +208,8 @@ export const WorkItemDetailPage = () => {
 
   const handleSelectEditAttachments = (files: FileList | null) => {
     if (!files) return;
-    setEditSelectedAttachments((prev) => [...prev, ...Array.from(files)]);
+    const nextFiles = Array.from(files);
+    setEditSelectedAttachments((prev) => [...prev, ...nextFiles]);
   };
 
   const handleRemoveEditSelectedAttachment = (indexToRemove: number) => {

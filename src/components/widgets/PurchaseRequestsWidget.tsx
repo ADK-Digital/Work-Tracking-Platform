@@ -272,7 +272,8 @@ export const PurchaseRequestsWidget = ({
 
   const handleSelectAttachments = (files: FileList | null) => {
     if (!files) return;
-    setSelectedAttachments((prev) => [...prev, ...Array.from(files)]);
+    const nextFiles = Array.from(files);
+    setSelectedAttachments((prev) => [...prev, ...nextFiles]);
   };
 
   const handleRemoveSelectedAttachment = (indexToRemove: number) => {

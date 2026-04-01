@@ -43,6 +43,7 @@ interface WorkItemBase extends WorkItemOwner {
   createdAt: string;
   dueAt?: string;
   deleted: boolean;
+  hasAttachments?: boolean;
 }
 
 export interface PurchaseRequestItem extends WorkItemBase {

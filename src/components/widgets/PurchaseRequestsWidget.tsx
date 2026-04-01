@@ -270,6 +270,25 @@ export const PurchaseRequestsWidget = ({
     await loadItems();
   };
 
+  const handleSelectAttachments = (files: FileList | null) => {
+    if (!files) return;
+    setSelectedAttachments((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  const handleRemoveSelectedAttachment = (indexToRemove: number) => {
+    setSelectedAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleDeleteExistingAttachment = async (attachmentId: string) => {
+    try {
+      await workItemsService.deleteAttachment(attachmentId);
+      setExistingAttachments((prev) => prev.filter((attachment) => attachment.id !== attachmentId));
+      notify("Attachment deleted");
+    } catch {
+      setSubmitError("Could not delete attachment. Please try again.");
+    }
+  };
+
   return (
     <>
       <WidgetCard
@@ -392,12 +411,23 @@ export const PurchaseRequestsWidget = ({
               type="file"
               multiple
               className="block w-full text-sm"
-              onChange={(e) => setSelectedAttachments(Array.from(e.target.files ?? []))}
+              onChange={(e) => handleSelectAttachments(e.target.files)}
             />
             {selectedAttachments.length > 0 ? (
-              <p className="mt-1 text-xs text-slate-500">
-                Selected: {selectedAttachments.map((file) => file.name).join(", ")}
-              </p>
+              <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                {selectedAttachments.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      className="text-rose-700 underline hover:text-rose-800"
+                      onClick={() => handleRemoveSelectedAttachment(index)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </label>
           {editing ? (
@@ -408,9 +438,18 @@ export const PurchaseRequestsWidget = ({
               ) : existingAttachments.length === 0 ? (
                 <p className="text-xs text-slate-500">No attachments.</p>
               ) : (
-                <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+                <ul className="space-y-1 text-xs text-slate-700">
                   {existingAttachments.map((attachment) => (
-                    <li key={attachment.id}>{attachment.filename}</li>
+                    <li key={attachment.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{attachment.filename}</span>
+                      <button
+                        type="button"
+                        className="text-rose-700 underline hover:text-rose-800"
+                        onClick={() => void handleDeleteExistingAttachment(attachment.id)}
+                      >
+                        🗑
+                      </button>
+                    </li>
                   ))}
                 </ul>
               )}

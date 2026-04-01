@@ -27,7 +27,6 @@ const ADD_NEW_OPTION_VALUE = "__add_new_project__";
 
 type FormState = {
   title: string;
-  requester: string;
   ownerGoogleId: string;
   status: TaskProjectStatus;
   category: "downtime" | "project";
@@ -39,7 +38,6 @@ type FormState = {
 
 const defaultForm: FormState = {
   title: "",
-  requester: "",
   ownerGoogleId: "",
   status: "submitted",
   category: "project",
@@ -165,7 +163,6 @@ export const TasksWidget = ({
     setErrors({});
     setForm({
       title: item.title,
-      requester: item.requester,
       ownerGoogleId: item.ownerGoogleId,
       status: item.status,
       category: item.category,
@@ -180,7 +177,6 @@ export const TasksWidget = ({
   const validate = (): boolean => {
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.title.trim()) nextErrors.title = "Title is required";
-    if (!form.requester.trim()) nextErrors.requester = "Requester is required";
     if (!form.ownerGoogleId.trim()) nextErrors.ownerGoogleId = "Owner is required";
     if (form.projectName === ADD_NEW_OPTION_VALUE && !form.newProjectName.trim()) {
       nextErrors.newProjectName = "Project name is required";
@@ -216,7 +212,6 @@ export const TasksWidget = ({
     const payload = {
       type: "task_project" as const,
       title: form.title.trim(),
-      requester: form.requester.trim(),
       ownerGoogleId: selectedOwner.googleId,
       ownerEmail: selectedOwner.email,
       ownerName: getOwnerDisplayName(selectedOwner),
@@ -360,7 +355,6 @@ export const TasksWidget = ({
       <Modal title={editing ? "Edit Task / Project" : "Add Task / Project"} open={modalOpen} onClose={() => setModalOpen(false)}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <Input label="Requester" value={form.requester} error={errors.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} />
           <Select label="Owner" value={form.ownerGoogleId} error={errors.ownerGoogleId} options={[{ label: "Select owner", value: "" }, ...mergedItemOwnerOptions.map((owner) => ({ label: getOwnerDisplayName(owner), value: owner.googleId }))]} onChange={(e) => setForm({ ...form, ownerGoogleId: e.target.value })} />
           <Select label="Status" value={form.status} options={TASK_PROJECT_STATUSES.map((status) => ({ label: status.label, value: status.key }))} onChange={(e) => setForm({ ...form, status: e.target.value as TaskProjectStatus })} />
           <Select

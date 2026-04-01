@@ -584,6 +584,18 @@ export const WorkItemDetailPage = () => {
               </p>
             ) : null}
           </label>
+          <div className="md:col-span-2">
+            <span className="mb-1 block text-sm font-medium text-slate-700">Existing Attachments</span>
+            {attachments.length === 0 ? (
+              <p className="text-xs text-slate-500">No attachments.</p>
+            ) : (
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+                {attachments.map((attachment) => (
+                  <li key={attachment.id}>{attachment.filename}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         {editSubmitError ? (
           <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{editSubmitError}</div>

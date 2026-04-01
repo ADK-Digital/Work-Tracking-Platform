@@ -14,9 +14,22 @@ const normalizeProjectName = (value: unknown): string | null => {
 };
 
 taskProjectOptionsRouter.get('/task-project-options', async (_req, res) => {
-  const options = await prisma.taskProjectOption.findMany({
-    orderBy: { name: 'asc' },
+  const activeWorkItemProjects = await prisma.workItem.findMany({
+    where: {
+      type: 'task',
+      deletedAt: null,
+      statusMeta: { is: { statusKey: { not: 'completed' } } },
+      NOT: [{ projectName: null }, { projectName: '' }],
+    },
+    select: { projectName: true },
+    distinct: ['projectName'],
+    orderBy: { projectName: 'asc' },
   });
+
+  const options = activeWorkItemProjects
+    .map((entry) => entry.projectName?.trim())
+    .filter((name): name is string => Boolean(name))
+    .map((name) => ({ name }));
 
   return res.json(options);
 });

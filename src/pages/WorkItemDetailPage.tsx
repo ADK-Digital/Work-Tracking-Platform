@@ -70,6 +70,17 @@ export const WorkItemDetailPage = () => {
     [item?.type]
   );
 
+  const editProjectOptions = useMemo(() => {
+    const names = new Set(projectOptions.map((option) => option.name.trim()).filter(Boolean));
+    const currentProjectName = form.projectName?.trim();
+
+    if (item?.type === "task_project" && currentProjectName && currentProjectName !== "__add_new_project__") {
+      names.add(currentProjectName);
+    }
+
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [form.projectName, item?.type, projectOptions]);
+
   const loadItemActivityAndComments = async () => {
     if (!id) {
       setItem(null);
@@ -590,7 +601,7 @@ export const WorkItemDetailPage = () => {
                 value={form.projectName}
                 options={[
                   { label: "No Project", value: "" },
-                  ...projectOptions.map((option) => ({ label: option.name, value: option.name })),
+                  ...editProjectOptions.map((projectName) => ({ label: projectName, value: projectName })),
                   { label: "Add New...", value: "__add_new_project__" },
                 ]}
                 onChange={(e) => setForm({ ...form, projectName: e.target.value, newProjectName: e.target.value === "__add_new_project__" ? form.newProjectName : "" })}

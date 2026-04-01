@@ -7,7 +7,7 @@ import { ApiError, apiFetch } from "../services/http";
 import { type AuthUser, loadAuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, workItemsService } from "../services/workItemsService";
-import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult } from "../types/workItem";
+import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectItem } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 import { getOwnerDisplayName } from "../utils/owners";
 
@@ -33,7 +33,7 @@ export const Dashboard = () => {
   const [ownerDirectoryError, setOwnerDirectoryError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<"all" | "none" | string>("all");
   const [projectFilterOptions, setProjectFilterOptions] = useState<string[]>([]);
-  const [searchProjectOptions, setSearchProjectOptions] = useState<string[]>([]);
+  const [taskProjectItems, setTaskProjectItems] = useState<TaskProjectItem[]>([]);
 
   const canManage = authUser?.role === "admin";
   const canUseDeletedFeatures = authUser?.role === "admin";
@@ -68,13 +68,16 @@ export const Dashboard = () => {
     }
   };
 
-  const loadSearchProjectOptions = async () => {
+  const loadTaskProjectItems = async () => {
     try {
-      const options = await workItemsService.listTaskProjectOptions();
-      setSearchProjectOptions(options.map((option) => option.name));
+      const items = await workItemsService.getWorkItems({
+        type: "task_project",
+        includeDeleted: canUseDeletedFeatures ? showDeleted : false,
+      });
+      setTaskProjectItems(items as TaskProjectItem[]);
     } catch (error) {
       console.error(error);
-      setSearchProjectOptions([]);
+      setTaskProjectItems([]);
     }
   };
 
@@ -113,7 +116,6 @@ export const Dashboard = () => {
   useEffect(() => {
     void loadMe();
     void loadDirectory();
-    void loadSearchProjectOptions();
 
     const handleApiError = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -139,6 +141,10 @@ export const Dashboard = () => {
       window.removeEventListener(API_FORBIDDEN_EVENT, handleForbidden);
     };
   }, []);
+
+  useEffect(() => {
+    void loadTaskProjectItems();
+  }, [canUseDeletedFeatures, showDeleted]);
 
   const searchingViewEnabled = activeQuery.length > 0;
 
@@ -221,6 +227,35 @@ export const Dashboard = () => {
     }
   }, [projectFilter, projectFilterOptions]);
 
+  const searchScopedProjectOptions = useMemo(() => {
+    const projectNames = new Set<string>();
+
+    for (const item of taskProjectItems) {
+      if (searchOwner !== "all" && item.ownerGoogleId !== searchOwner) {
+        continue;
+      }
+
+      const name = item.projectName?.trim();
+      if (!name) {
+        continue;
+      }
+
+      projectNames.add(name);
+    }
+
+    return [...projectNames].sort((a, b) => a.localeCompare(b));
+  }, [searchOwner, taskProjectItems]);
+
+  useEffect(() => {
+    if (searchProject === "all" || searchProject === "none") {
+      return;
+    }
+
+    if (!searchScopedProjectOptions.includes(searchProject)) {
+      setSearchProject("all");
+    }
+  }, [searchProject, searchScopedProjectOptions]);
+
   return (
     <AppShell
       authUser={authUser}
@@ -281,7 +316,7 @@ export const Dashboard = () => {
             <select value={searchProject} onChange={(event) => setSearchProject(event.target.value)} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
               <option value="all">All</option>
               <option value="none">No Project</option>
-              {searchProjectOptions.map((projectName) => (
+              {searchScopedProjectOptions.map((projectName) => (
                 <option key={projectName} value={projectName}>{projectName}</option>
               ))}
             </select>

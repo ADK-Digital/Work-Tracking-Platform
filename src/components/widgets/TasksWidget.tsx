@@ -163,6 +163,17 @@ export const TasksWidget = ({
     return [...projectNames].sort((a, b) => a.localeCompare(b));
   }, [ownerScopedItems]);
 
+  const modalProjectOptions = useMemo(() => {
+    const names = new Set(projectOptions.map((option) => option.name.trim()).filter(Boolean));
+    const currentProjectName = form.projectName?.trim();
+
+    if (editing && currentProjectName && currentProjectName !== ADD_NEW_OPTION_VALUE) {
+      names.add(currentProjectName);
+    }
+
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [editing, form.projectName, projectOptions]);
+
   useEffect(() => {
     onProjectFilterOptionsChange?.(projectFilterOptions);
   }, [onProjectFilterOptionsChange, projectFilterOptions]);
@@ -447,7 +458,7 @@ export const TasksWidget = ({
             value={form.projectName}
             options={[
               { label: "No Project", value: "" },
-              ...projectOptions.map((option) => ({ label: option.name, value: option.name })),
+              ...modalProjectOptions.map((projectName) => ({ label: projectName, value: projectName })),
               { label: "Add New...", value: ADD_NEW_OPTION_VALUE },
             ]}
             onChange={(e) => setForm({ ...form, projectName: e.target.value, newProjectName: e.target.value === ADD_NEW_OPTION_VALUE ? form.newProjectName : "" })}

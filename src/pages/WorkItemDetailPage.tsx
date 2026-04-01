@@ -525,7 +525,10 @@ export const WorkItemDetailPage = () => {
                     type="file"
                     multiple
                     className="block w-full text-sm"
-                    onChange={(e) => handleSelectAttachmentFiles(e.target.files)}
+                    onChange={(e) => {
+                      handleSelectAttachmentFiles(e.target.files);
+                      e.target.value = "";
+                    }}
                   />
                 </label>
                 {attachmentFiles.length > 0 ? (
@@ -614,7 +617,10 @@ export const WorkItemDetailPage = () => {
               type="file"
               multiple
               className="block w-full text-sm"
-              onChange={(e) => handleSelectEditAttachments(e.target.files)}
+              onChange={(e) => {
+                handleSelectEditAttachments(e.target.files);
+                e.target.value = "";
+              }}
             />
             {editSelectedAttachments.length > 0 ? (
               <ul className="mt-2 space-y-1 text-xs text-slate-500">

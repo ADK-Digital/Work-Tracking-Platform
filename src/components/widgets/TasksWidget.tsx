@@ -454,7 +454,10 @@ export const TasksWidget = ({
               type="file"
               multiple
               className="block w-full text-sm"
-              onChange={(e) => handleSelectAttachments(e.target.files)}
+              onChange={(e) => {
+                handleSelectAttachments(e.target.files);
+                e.target.value = "";
+              }}
             />
             {selectedAttachments.length > 0 ? (
               <ul className="mt-2 space-y-1 text-xs text-slate-500">

@@ -362,7 +362,7 @@ export const TasksWidget = ({
                         {item.title}
                       </Link>
                       {item.hasAttachments ? (
-                        <span aria-label="Has attachments" className="text-xs text-slate-400">
+                        <span aria-label="Has attachments" title="Has attachments" className="text-sm text-slate-500">
                           📎
                         </span>
                       ) : null}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   TASK_PROJECT_STATUSES,
+  type Attachment,
   type SortOption,
   type TaskProjectItem,
   type TaskProjectStatus,
@@ -70,6 +71,10 @@ export const TasksWidget = ({
   const [editing, setEditing] = useState<TaskProjectItem | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedAttachments, setSelectedAttachments] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [existingAttachmentsLoading, setExistingAttachmentsLoading] = useState(false);
   const { notify } = useToast();
   const [ownerOptions, setOwnerOptions] = useState<OwnerDirectoryEntry[]>([]);
   const [projectOptions, setProjectOptions] = useState<TaskProjectOption[]>([]);
@@ -154,13 +159,21 @@ export const TasksWidget = ({
   const openCreate = () => {
     setEditing(null);
     setErrors({});
+    setSubmitError(null);
+    setSelectedAttachments([]);
+    setExistingAttachments([]);
+    setExistingAttachmentsLoading(false);
     setForm(defaultForm);
     setModalOpen(true);
   };
 
-  const openEdit = (item: TaskProjectItem) => {
+  const openEdit = async (item: TaskProjectItem) => {
     setEditing(item);
     setErrors({});
+    setSubmitError(null);
+    setSelectedAttachments([]);
+    setExistingAttachments([]);
+    setExistingAttachmentsLoading(true);
     setForm({
       title: item.title,
       ownerGoogleId: item.ownerGoogleId,
@@ -172,6 +185,15 @@ export const TasksWidget = ({
       newProjectName: "",
     });
     setModalOpen(true);
+
+    try {
+      const nextAttachments = await workItemsService.listAttachments(item.id);
+      setExistingAttachments(nextAttachments);
+    } catch {
+      setExistingAttachments([]);
+    } finally {
+      setExistingAttachmentsLoading(false);
+    }
   };
 
   const validate = (): boolean => {
@@ -225,16 +247,30 @@ export const TasksWidget = ({
       projectName,
     };
 
-    if (editing) {
-      await workItemsService.updateWorkItem(editing.id, payload);
-      notify("Updated");
-    } else {
-      await workItemsService.createWorkItem(payload);
-      notify("Created");
-    }
+    setSubmitError(null);
 
-    setModalOpen(false);
-    await loadItems();
+    try {
+      const workItemId = editing
+        ? (await workItemsService.updateWorkItem(editing.id, payload)).id
+        : (await workItemsService.createWorkItem(payload)).id;
+
+      const uploadResults = await Promise.allSettled(
+        selectedAttachments.map((file) => workItemsService.uploadAttachment(workItemId, file)),
+      );
+      const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
+
+      if (editing) {
+        notify(failedUploads > 0 ? `Updated, but ${failedUploads} attachment(s) failed to upload` : "Updated");
+      } else {
+        notify(failedUploads > 0 ? `Created, but ${failedUploads} attachment(s) failed to upload` : "Created");
+      }
+
+      setModalOpen(false);
+      setSelectedAttachments([]);
+      await loadItems();
+    } catch {
+      setSubmitError("Could not save work item. Please review fields and try again.");
+    }
   };
 
   const updateInline = async (id: string, patch: Partial<TaskProjectItem>) => {
@@ -333,7 +369,7 @@ export const TasksWidget = ({
                       }}
                     />
                   </div>
-                  <Button className="md:w-auto md:min-w-24 md:flex-none" variant="secondary" onClick={() => openEdit(item)} disabled={!canManage}>
+                  <Button className="md:w-auto md:min-w-24 md:flex-none" variant="secondary" onClick={() => void openEdit(item)} disabled={!canManage}>
                     Edit
                   </Button>
                   {item.deleted && canRestore ? (
@@ -393,7 +429,40 @@ export const TasksWidget = ({
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </label>
+          <label className="block text-sm md:col-span-2">
+            <span className="mb-1 block font-medium text-slate-700">Attachments (Optional)</span>
+            <input
+              type="file"
+              multiple
+              className="block w-full text-sm"
+              onChange={(e) => setSelectedAttachments(Array.from(e.target.files ?? []))}
+            />
+            {selectedAttachments.length > 0 ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Selected: {selectedAttachments.map((file) => file.name).join(", ")}
+              </p>
+            ) : null}
+          </label>
+          {editing ? (
+            <div className="md:col-span-2">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Existing Attachments</span>
+              {existingAttachmentsLoading ? (
+                <p className="text-xs text-slate-500">Loading attachments...</p>
+              ) : existingAttachments.length === 0 ? (
+                <p className="text-xs text-slate-500">No attachments.</p>
+              ) : (
+                <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+                  {existingAttachments.map((attachment) => (
+                    <li key={attachment.id}>{attachment.filename}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
         </div>
+        {submitError ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{submitError}</div>
+        ) : null}
         <div className="mt-4 flex justify-between gap-2">
           <div>
             {editing ? (<Button variant="danger" onClick={() => void handleDelete(editing.id)} disabled={!canManage}>Delete</Button>) : null}

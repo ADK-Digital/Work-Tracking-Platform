@@ -12,8 +12,8 @@ export const Header = ({ authUser, onSignOut, headerActions }: HeaderProps) => (
   <header className="border-b border-slate-200 bg-white">
     <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Special Projects Tracker</h1>
-        <p className="text-sm text-slate-500">Prototype dashboard for purchase requests and project tasks.</p>
+        <h1 className="text-xl font-semibold text-slate-900">Work Tracking Platform</h1>
+        <p className="text-sm text-slate-500">Internal work tracking application for projects and requests.</p>
       </div>
       <div className="flex items-center gap-2">
         {authUser ? (

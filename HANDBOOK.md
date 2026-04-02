@@ -1,7 +1,7 @@
-# Special Projects Tracker — Master Handbook
+# Work Tracking Platform — Master Handbook
 
 ## 1. System Overview
-The Special Projects Tracker is an internal web application used to manage Purchase Requests and Tasks/Projects.
+The Work Tracking Platform is an internal work tracking application used to manage projects and requests.
 
 Architecture:
 - Frontend: React + Vite + TypeScript
@@ -12,17 +12,15 @@ Architecture:
 - Authentication: Google OAuth
 - Container Runtime: Podman
 
-Note: Some filenames still reference Docker (e.g., docker-compose.prod.yml).
+Note: Some filenames still reference Docker (for example, `docker-compose.prod.yml`).
 
 ---
 
 ## 2. System Location & Access
-Server:
-- Host: pm-server
-- DNS: pm-dev.bscsd.org
+Server and DNS values are environment-specific and should be provided by each institution.
 
 Repository path:
-/var/home/local-admin/pm/bscsd-pm
+Set this to your institution's deployment path.
 
 ---
 
@@ -56,7 +54,7 @@ Admins can:
 - Export data
 
 Admin group:
-cms-admins@bscsd.org
+Set via your environment configuration (`ADMIN_GROUPS` / `ADMIN_EMAILS`).
 
 ---
 
@@ -66,11 +64,11 @@ DO NOT edit code on server.
 Workflow:
 1. Develop locally
 2. Push to GitHub
-3. Deploy:
+3. Deploy using the supported entrypoint:
 
-ssh stefan@pm-server
-cd /var/home/local-admin/pm/bscsd-pm
+```bash
 ./ops/deploy-prod.sh
+```
 
 ---
 
@@ -82,48 +80,42 @@ Containers:
 - minio
 
 Check:
+```bash
 sudo podman ps
+```
 
 Health:
-- /api/health
-- /api/ready
+- `/api/health`
+- `/api/ready`
 
 ---
 
 ## 7. Backup & Recovery
-Script:
-/var/home/local-admin/pm/bscsd-pm/ops/backup-db.sh
+Backups exist in this system and are run operationally.
 
-Location:
-/var/home/local-admin/pm-backups/
-
-Contains:
-- postgres.dump
-- minio-data.tar.gz
-
-Runs daily via systemd.
-Retention: 30 days.
+Note:
+- Backup strategy is environment-specific and intentionally out of scope for this template-conversion pass.
 
 ---
 
 ## 8. Operations
 Check containers:
+```bash
 sudo podman ps
-
-Check backups:
-ls /var/home/local-admin/pm-backups
-
-Check timer:
-systemctl --user list-timers | grep pm-backup
+```
 
 ---
 
 ## 9. Troubleshooting
 Check containers:
+```bash
 sudo podman ps
+```
 
 Check logs:
+```bash
 sudo podman logs nginx
+```
 
 ---
 
@@ -133,10 +125,10 @@ DO NOT:
 - Store secrets in repo
 
 ALWAYS:
-- Use deploy-prod.sh
-- Verify backups
+- Use `deploy-prod.sh`
+- Follow your institution's backup verification process
 
 ---
 
 ## 11. Summary
-Production-ready, backed up, maintainable system.
+Production-ready internal work tracking application with environment-specific deployment and operations.

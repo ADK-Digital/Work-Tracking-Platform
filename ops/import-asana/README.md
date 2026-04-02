@@ -2,7 +2,7 @@
 
 > ⚠️ This was a one-time migration script, it has already been run successfully, and it should not be run again.
 
-This folder contains the archived one-time Asana migration script that was used to import CSV exports into the BSCSD Project Manager database.
+This folder contains an archived one-time Asana migration script used to import CSV exports into the work tracking database.
 
 ## Script
 
@@ -10,15 +10,13 @@ This folder contains the archived one-time Asana migration script that was used 
 
 ## What it does
 
-- Reads these CSV files from `/home/stefan/asana-import/`:
+- Reads these CSV files from an import directory (historically `/home/<deploy-user>/asana-import/`):
   - `Break_Project_List.csv`
   - `Budgeting_&_Purchases.csv`
   - `Task_Tracking.csv`
   - `Team_Coordination_&_Tasks.csv`
 - Skips rows where `Completed At` is populated.
-- Applies ownership rules:
-  - Purchase requests always map to `jlamora@bscsd.org`.
-  - Tasks with blank `Assignee Email` fall back to `aperuzzi@bscsd.org` and append `Imported from Asana without an assignee.` to the description.
+- Applies ownership rules from the migration runbook, including fallback owner handling when an assignee email was missing.
 - Resolves owners against the same Google Directory/mock owner source used by the app.
 - Ensures task `projectName` values are persisted and that required `TaskProjectOption` values exist.
 - Creates one `ActivityEvent` (`type=created`, `message="Imported from Asana"`, `actor="asana-import"`) for each imported work item.
@@ -37,19 +35,19 @@ The script always prints an `About to import X records` line before write execut
 From the repository root:
 
 ```bash
-cd /workspace/bscsd-pm
+cd /workspace/<repo-name>
 npx tsx ops/import-asana/archive/import-asana-2026-asana-migration.ts
 ```
 
 Execute mode (historical reference only; do not run again):
 
 ```bash
-cd /workspace/bscsd-pm
+cd /workspace/<repo-name>
 npx tsx ops/import-asana/archive/import-asana-2026-asana-migration.ts --execute
 ```
 
 Notes:
 
 - Ensure backend environment variables are available (for `DATABASE_URL`, owner directory settings, etc.).
-- The script checks env files in this order: `/home/stefan/pm-prod/secrets/server.env.prod`, `/home/stefan/pm-prod/secrets/server.env.prod.runtime`, `/home/stefan/pm-prod/ADK-Digital-Site/server/.env.prod`, `server/.env.prod`, `.env.backend`, then `server/.env`.
+- The script checks several env files, then falls back to `server/.env.prod`, `.env.backend`, and `server/.env`.
 - Existing process environment variables are preserved and not overwritten by file-loaded values.

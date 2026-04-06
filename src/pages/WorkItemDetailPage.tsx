@@ -7,6 +7,8 @@ import { Input } from "../components/ui/Input";
 import { Modal } from "../components/ui/Modal";
 import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
+import { DemoAttachmentNote } from "../components/demo/DemoAttachmentNote";
+import { isDemoMode } from "../config/appMode";
 import type { AuthUser } from "../services/authService";
 import { API_FORBIDDEN_EVENT } from "../services/workItemsService";
 import { getAuthProvider } from "../providers/auth/authProvider";
@@ -496,6 +498,7 @@ export const WorkItemDetailPage = () => {
 
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
             <h3 className="text-base font-semibold text-slate-900">Attachments</h3>
+            {isDemoMode ? <DemoAttachmentNote /> : null}
             {attachmentError ? (
               <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{attachmentError}</div>
             ) : null}
@@ -631,6 +634,7 @@ export const WorkItemDetailPage = () => {
           </label>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1 block font-medium text-slate-700">Attachments (Optional)</span>
+            {isDemoMode ? <DemoAttachmentNote /> : null}
             <input
               type="file"
               multiple

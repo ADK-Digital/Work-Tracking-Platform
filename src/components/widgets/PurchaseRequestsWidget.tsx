@@ -15,7 +15,9 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { Input } from "../ui/Input";
+import { DemoAttachmentNote } from "../demo/DemoAttachmentNote";
 import { formatDate } from "../../utils/dates";
+import { isDemoMode } from "../../config/appMode";
 import { useToast } from "../ui/Toast";
 import type { OwnerIdentity } from "../../utils/ownerMatching";
 import { workItemMatchesOwnerIdentity } from "../../utils/ownerMatching";
@@ -417,6 +419,7 @@ export const PurchaseRequestsWidget = ({
           </label>
           <label className="block text-sm md:col-span-2">
             <span className="mb-1 block font-medium text-slate-700">Attachments (Optional)</span>
+            {isDemoMode ? <DemoAttachmentNote /> : null}
             <input
               type="file"
               multiple

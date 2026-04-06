@@ -56,6 +56,7 @@ type DemoStore = {
 };
 
 const DEMO_STORE_KEY = "demo_work_items_store";
+export const DEMO_DATA_RESET_EVENT = "demo:data-reset";
 const TERMINAL_STATUS = {
   purchase_request: new Set(["completed"]),
   task_project: new Set(["completed"]),
@@ -649,3 +650,13 @@ const demoWorkItemsDataProvider: WorkItemsDataProvider = {
 
 export const getWorkItemsDataProvider = (): WorkItemsDataProvider =>
   APP_MODE === "demo" ? demoWorkItemsDataProvider : standardWorkItemsDataProvider;
+
+export const resetDemoSessionStore = (): void => {
+  if (APP_MODE !== "demo") {
+    return;
+  }
+
+  demoStoreCache = null;
+  sessionStorage.removeItem(DEMO_STORE_KEY);
+  window.dispatchEvent(new CustomEvent(DEMO_DATA_RESET_EVENT));
+};

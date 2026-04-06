@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
 import type { AuthUser } from "../../services/authService";
+import { isDemoMode } from "../../config/appMode";
+import { DemoModeBanner } from "../demo/DemoModeBanner";
 
 interface AppShellProps {
   children: ReactNode;
@@ -13,6 +15,9 @@ interface AppShellProps {
 export const AppShell = ({ children, authUser, onSignOut, signInUrl, headerActions }: AppShellProps) => (
   <div className="min-h-screen bg-slate-50 text-slate-900">
     <Header authUser={authUser} onSignOut={onSignOut} signInUrl={signInUrl} headerActions={headerActions} />
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      {isDemoMode ? <DemoModeBanner /> : null}
+      {children}
+    </main>
   </div>
 );

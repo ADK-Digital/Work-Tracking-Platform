@@ -11,6 +11,7 @@ import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerD
 import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT } from "../services/workItemsService";
 import { getAuthProvider } from "../providers/auth/authProvider";
 import { getWorkItemsDataProvider } from "../providers/data/workItemsDataProvider";
+import { isDemoMode } from "../config/appMode";
 import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectItem } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 import { getOwnerDisplayName } from "../utils/owners";
@@ -492,7 +493,7 @@ export const Dashboard = () => {
                 </select>
               </label>
               {ownerDirectoryLoading ? <p className="text-sm text-slate-500">Loading owners…</p> : null}
-              {ownerDirectoryError ? <p className="text-sm text-amber-700">{ownerDirectoryError}</p> : null}
+              {!isDemoMode && ownerDirectoryError ? <p className="text-sm text-amber-700">{ownerDirectoryError}</p> : null}
             </div>
           </section>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

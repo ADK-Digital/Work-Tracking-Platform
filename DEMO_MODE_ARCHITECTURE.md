@@ -6,7 +6,7 @@ This pass introduces a minimal-risk architecture seam so the frontend can suppor
 
 Current mode options:
 - `standard` (default): existing Google-authenticated, backend-driven behavior
-- `demo` (placeholder): scaffolded extension points only
+- `demo`: frontend-only, session-scoped behavior with seeded synthetic data
 
 ## What Was Introduced
 
@@ -41,9 +41,9 @@ Usage updates:
 
 Implementations:
 - `standardWorkItemsDataProvider`: delegates to existing `workItemsService`
-- `demoWorkItemsDataProvider` (placeholder): currently delegates to standard while marking demo seam
+- `demoWorkItemsDataProvider`: uses browser `sessionStorage` + in-memory cache and never calls backend endpoints
 
-Placeholder seed location:
+Seed location:
 - `src/providers/data/demo/demoSeed.ts`
 
 Usage updates:
@@ -68,23 +68,52 @@ Usage updates:
 - No database schema changes.
 - No deployment script changes.
 
-## Recommended Next Pass
+## Demo Session Storage Lifecycle
 
-1. **Implement demo data provider behavior**
-   - Add in-memory/session-scoped store for work items, comments, attachments metadata, and activity.
-   - Start from `DEMO_WORK_ITEMS_SEED` and clone per browser session.
+### Storage mechanism
 
-2. **Session-scoped persistence model**
-   - Recommended: keep demo state in-memory in the browser (or `sessionStorage`) keyed by a demo session identifier.
-   - On reset (manual control or new session), rehydrate from seed data.
-   - Avoid cross-user persistence; demo state should never write to production backend.
+- Demo work-item state is stored under a single key in `sessionStorage`:
+  - `demo_work_items_store`
+- Persisted store includes:
+  - work items
+  - comments
+  - activity log events
+  - attachment metadata
+  - task/project option values
 
-3. **Expand non-core providers as needed**
-   - Introduce owner-directory provider and export provider seams if demo mode needs synthetic owners or local export behavior.
+### Initialization and rehydration
 
-4. **UI affordances for demo mode**
-   - Optional demo banner and reset control.
-   - Ensure visual indication that data is synthetic.
+- On first load in a browser tab/session:
+  - provider deep-clones `DEMO_WORK_ITEMS_SEED` + related demo seed collections
+  - writes the resulting state to `sessionStorage`
+- On subsequent operations in the same session:
+  - provider reads from in-memory cache/sessionStorage
+  - every mutation writes the full updated state back to `sessionStorage`
+- If storage data is missing, malformed, or shape-invalid:
+  - provider automatically reinitializes from seed and continues
+
+### Reset behavior
+
+- Demo data is intentionally **session-scoped**:
+  - closing the tab/window ends the browser session
+  - opening a new session starts from seed data again
+- No `localStorage` usage, so demo data never persists across sessions.
+
+## Current Demo Provider Behavior
+
+- Fully local CRUD in demo mode for:
+  - `getWorkItems`
+  - `getWorkItemById`
+  - `createWorkItem`
+  - `updateWorkItem`
+  - `completeWorkItem`
+  - `softDeleteWorkItem`
+  - `restoreWorkItem`
+- Additional local support for:
+  - comments (`listComments`, `addComment`, `softDeleteComment`)
+  - activity (`listActivity`, mutation event appends)
+  - attachments metadata (`listAttachments`, `uploadAttachment`, `deleteAttachment`)
+  - task/project options and local search
 
 ## Guidance for Institutions That Do Not Want Demo Mode
 

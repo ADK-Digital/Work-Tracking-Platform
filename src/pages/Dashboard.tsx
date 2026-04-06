@@ -5,15 +5,20 @@ import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { PurchaseRequestsWidget } from "../components/widgets/PurchaseRequestsWidget";
 import { TasksWidget } from "../components/widgets/TasksWidget";
-import { API_BASE_URL, ApiError, apiFetch } from "../services/http";
-import { type AuthUser, loadAuthUser } from "../services/authService";
+import { API_BASE_URL } from "../services/http";
+import type { AuthUser } from "../services/authService";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
-import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT, workItemsService } from "../services/workItemsService";
+import { API_ERROR_EVENT, API_FORBIDDEN_EVENT, API_UNAUTHORIZED_EVENT } from "../services/workItemsService";
+import { getAuthProvider } from "../providers/auth/authProvider";
+import { getWorkItemsDataProvider } from "../providers/data/workItemsDataProvider";
 import { PURCHASE_REQUEST_STATUSES, TASK_PROJECT_STATUSES, type SearchResult, type TaskProjectItem } from "../types/workItem";
 import type { OwnerIdentity } from "../utils/ownerMatching";
 import { getOwnerDisplayName } from "../utils/owners";
 
 type DashboardOwnerFilter = "me" | "all" | string;
+
+const authProvider = getAuthProvider();
+const workItemsDataProvider = getWorkItemsDataProvider();
 
 export const Dashboard = () => {
   const [apiError, setApiError] = useState<string | null>(null);
@@ -49,16 +54,12 @@ export const Dashboard = () => {
 
   const loadMe = async () => {
     try {
-      const me = await loadAuthUser();
+      const me = await authProvider.getCurrentUser();
       setAuthUser(me);
       setAuthWarning(null);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setAuthUser(null);
-        return;
-      }
-
       console.error(error);
+      setAuthUser(null);
     }
   };
 
@@ -79,7 +80,7 @@ export const Dashboard = () => {
 
   const loadTaskProjectItems = async () => {
     try {
-      const items = await workItemsService.getWorkItems({
+      const items = await workItemsDataProvider.getWorkItems({
         type: "task_project",
         includeDeleted: canUseDeletedFeatures ? showDeleted : false,
       });
@@ -91,7 +92,7 @@ export const Dashboard = () => {
   };
 
   const signOut = async () => {
-    await apiFetch<void>("/auth/logout", { method: "POST" });
+    await authProvider.signOut();
     setAuthUser(null);
     setAuthWarning("Please sign in to continue");
   };
@@ -108,7 +109,7 @@ export const Dashboard = () => {
 
     setSearching(true);
     try {
-      const nextResults = await workItemsService.searchWorkItems(nextQuery, {
+      const nextResults = await workItemsDataProvider.searchWorkItems(nextQuery, {
         type: searchType === "all" ? undefined : searchType,
         status: searchStatus === "all" ? undefined : searchStatus,
         ownerGoogleId: searchOwner === "all" ? undefined : searchOwner,
@@ -353,6 +354,7 @@ export const Dashboard = () => {
     <AppShell
       authUser={authUser}
       onSignOut={signOut}
+      signInUrl={authProvider.getSignInUrl()}
       headerActions={authUser?.role === "admin" ? <Button variant="secondary" onClick={openExportModal}>Export</Button> : null}
     >
       {authWarning ? (

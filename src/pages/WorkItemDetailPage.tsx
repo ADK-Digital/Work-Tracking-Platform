@@ -7,8 +7,10 @@ import { Input } from "../components/ui/Input";
 import { Modal } from "../components/ui/Modal";
 import { Select } from "../components/ui/Select";
 import { useToast } from "../components/ui/Toast";
-import { type AuthUser, loadAuthUser } from "../services/authService";
-import { API_FORBIDDEN_EVENT, workItemsService } from "../services/workItemsService";
+import type { AuthUser } from "../services/authService";
+import { API_FORBIDDEN_EVENT } from "../services/workItemsService";
+import { getAuthProvider } from "../providers/auth/authProvider";
+import { getWorkItemsDataProvider } from "../providers/data/workItemsDataProvider";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../services/ownerDirectoryService";
 import {
   PURCHASE_REQUEST_STATUSES,
@@ -32,6 +34,9 @@ type FormState = {
   projectName: string;
   newProjectName: string;
 };
+
+const authProvider = getAuthProvider();
+const workItemsDataProvider = getWorkItemsDataProvider();
 
 export const WorkItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -95,10 +100,10 @@ export const WorkItemDetailPage = () => {
     setLoading(true);
     try {
       const [found, events, nextComments, nextAttachments] = await Promise.all([
-        workItemsService.getWorkItemById(id, { includeDeleted: canViewDeleted }),
-        workItemsService.listActivity(id),
-        workItemsService.listComments(id),
-        workItemsService.listAttachments(id)
+        workItemsDataProvider.getWorkItemById(id, { includeDeleted: canViewDeleted }),
+        workItemsDataProvider.listActivity(id),
+        workItemsDataProvider.listComments(id),
+        workItemsDataProvider.listAttachments(id)
       ]);
       setItem(found);
       setActivity(events);
@@ -120,7 +125,7 @@ export const WorkItemDetailPage = () => {
   useEffect(() => {
     const loadMe = async () => {
       try {
-        const me = await loadAuthUser();
+        const me = await authProvider.getCurrentUser();
         setAuthUser(me);
       } catch {
         setAuthUser(null);
@@ -129,7 +134,7 @@ export const WorkItemDetailPage = () => {
 
     void loadMe();
     void loadOwnerDirectory().then((response) => setOwnerOptions(response.owners)).catch(() => setOwnerOptions([]));
-    void workItemsService.listTaskProjectOptions().then(setProjectOptions).catch(() => setProjectOptions([]));
+    void workItemsDataProvider.listTaskProjectOptions().then(setProjectOptions).catch(() => setProjectOptions([]));
 
     const handleForbidden = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
@@ -160,7 +165,7 @@ export const WorkItemDetailPage = () => {
     setCommentError(null);
 
     try {
-      await workItemsService.addComment(item.id, trimmedBody);
+      await workItemsDataProvider.addComment(item.id, trimmedBody);
       setCommentBody("");
       notify("Comment added");
       await loadItemActivityAndComments();
@@ -180,7 +185,7 @@ export const WorkItemDetailPage = () => {
     setUploadingAttachment(true);
     try {
       const uploadResults = await Promise.allSettled(
-        attachmentFiles.map((file) => workItemsService.uploadAttachment(item.id, file)),
+        attachmentFiles.map((file) => workItemsDataProvider.uploadAttachment(item.id, file)),
       );
       const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
       setAttachmentFiles([]);
@@ -199,7 +204,7 @@ export const WorkItemDetailPage = () => {
     }
 
     try {
-      await workItemsService.deleteAttachment(attachmentId);
+      await workItemsDataProvider.deleteAttachment(attachmentId);
       notify("Attachment deleted");
       await loadItemActivityAndComments();
     } catch {
@@ -233,7 +238,7 @@ export const WorkItemDetailPage = () => {
     }
 
     try {
-      await workItemsService.softDeleteComment(commentId);
+      await workItemsDataProvider.softDeleteComment(commentId);
       notify("Comment deleted");
       await loadItemActivityAndComments();
     } catch {
@@ -274,9 +279,9 @@ export const WorkItemDetailPage = () => {
     let resolvedProjectName: string | undefined;
     if (item.type === "task_project") {
       if (form.projectName === "__add_new_project__") {
-        const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
+        const created = await workItemsDataProvider.createTaskProjectOption(form.newProjectName.trim());
         resolvedProjectName = created.name;
-        const options = await workItemsService.listTaskProjectOptions();
+        const options = await workItemsDataProvider.listTaskProjectOptions();
         setProjectOptions(options);
       } else {
         resolvedProjectName = form.projectName.trim() || undefined;
@@ -286,7 +291,7 @@ export const WorkItemDetailPage = () => {
     setEditSubmitError(null);
 
     try {
-      await workItemsService.updateWorkItem(item.id, {
+      await workItemsDataProvider.updateWorkItem(item.id, {
         title: form.title.trim(),
         description: form.description.trim() || undefined,
         status: form.status as WorkItem["status"],
@@ -301,7 +306,7 @@ export const WorkItemDetailPage = () => {
       });
 
       const uploadResults = await Promise.allSettled(
-        editSelectedAttachments.map((file) => workItemsService.uploadAttachment(item.id, file)),
+        editSelectedAttachments.map((file) => workItemsDataProvider.uploadAttachment(item.id, file)),
       );
       const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
 
@@ -317,13 +322,13 @@ export const WorkItemDetailPage = () => {
   const handleRestore = async () => {
     if (!item) return;
 
-    await workItemsService.restoreWorkItem(item.id);
+    await workItemsDataProvider.restoreWorkItem(item.id);
     notify("Restored");
     await loadItemActivityAndComments();
   };
 
   return (
-    <AppShell authUser={authUser}>
+    <AppShell authUser={authUser} signInUrl={authProvider.getSignInUrl()}>
       {forbiddenWarning ? (
         <div className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900">{forbiddenWarning}</div>
       ) : null}
@@ -505,7 +510,7 @@ export const WorkItemDetailPage = () => {
                       <div>
                         <a
                           className="text-sm font-medium text-slate-800 underline hover:text-slate-900"
-                          href={workItemsService.getAttachmentDownloadUrl(attachment.id)}
+                          href={workItemsDataProvider.getAttachmentDownloadUrl(attachment.id)}
                           target="_blank"
                           rel="noreferrer"
                         >

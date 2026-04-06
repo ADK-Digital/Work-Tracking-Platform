@@ -8,7 +8,7 @@ import {
   type TaskProjectStatus,
   type TaskProjectOption,
 } from "../../types/workItem";
-import { workItemsService } from "../../services/workItemsService";
+import { getWorkItemsDataProvider } from "../../providers/data/workItemsDataProvider";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../../services/ownerDirectoryService";
 import { WidgetCard } from "./WidgetCard";
 import { Select } from "../ui/Select";
@@ -25,6 +25,8 @@ import { formatOwnerLabel, getOwnerDisplayName } from "../../utils/owners";
 type Filter = "all" | string;
 
 const ADD_NEW_OPTION_VALUE = "__add_new_project__";
+
+const workItemsDataProvider = getWorkItemsDataProvider();
 
 type FormState = {
   title: string;
@@ -85,8 +87,8 @@ export const TasksWidget = ({
     setLoading(true);
     try {
       const [data, options] = await Promise.all([
-        workItemsService.getWorkItems({ type: "task_project", statusFilter: filter, sort, includeDeleted }),
-        workItemsService.listTaskProjectOptions(),
+        workItemsDataProvider.getWorkItems({ type: "task_project", statusFilter: filter, sort, includeDeleted }),
+        workItemsDataProvider.listTaskProjectOptions(),
       ]);
       setItems(data as TaskProjectItem[]);
       setProjectOptions(options);
@@ -224,7 +226,7 @@ export const TasksWidget = ({
     setModalOpen(true);
 
     try {
-      const nextAttachments = await workItemsService.listAttachments(item.id);
+      const nextAttachments = await workItemsDataProvider.listAttachments(item.id);
       setExistingAttachments(nextAttachments);
     } catch {
       setExistingAttachments([]);
@@ -247,8 +249,8 @@ export const TasksWidget = ({
 
   const resolveProjectName = async (): Promise<string | undefined> => {
     if (form.projectName === ADD_NEW_OPTION_VALUE) {
-      const created = await workItemsService.createTaskProjectOption(form.newProjectName.trim());
-      const updatedOptions = await workItemsService.listTaskProjectOptions();
+      const created = await workItemsDataProvider.createTaskProjectOption(form.newProjectName.trim());
+      const updatedOptions = await workItemsDataProvider.listTaskProjectOptions();
       setProjectOptions(updatedOptions);
       return created.name;
     }
@@ -287,11 +289,11 @@ export const TasksWidget = ({
 
     try {
       const workItemId = editing
-        ? (await workItemsService.updateWorkItem(editing.id, payload)).id
-        : (await workItemsService.createWorkItem(payload)).id;
+        ? (await workItemsDataProvider.updateWorkItem(editing.id, payload)).id
+        : (await workItemsDataProvider.createWorkItem(payload)).id;
 
       const uploadResults = await Promise.allSettled(
-        selectedAttachments.map((file) => workItemsService.uploadAttachment(workItemId, file)),
+        selectedAttachments.map((file) => workItemsDataProvider.uploadAttachment(workItemId, file)),
       );
       const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
 
@@ -310,25 +312,25 @@ export const TasksWidget = ({
   };
 
   const updateInline = async (id: string, patch: Partial<TaskProjectItem>) => {
-    await workItemsService.updateWorkItem(id, patch);
+    await workItemsDataProvider.updateWorkItem(id, patch);
     notify("Updated");
     await loadItems();
   };
 
   const handleComplete = async (id: string) => {
-    await workItemsService.completeWorkItem(id);
+    await workItemsDataProvider.completeWorkItem(id);
     notify("Completed");
     await loadItems();
   };
 
   const handleDelete = async (id: string) => {
-    await workItemsService.softDeleteWorkItem(id);
+    await workItemsDataProvider.softDeleteWorkItem(id);
     notify("Deleted");
     await loadItems();
   };
 
   const handleRestore = async (id: string) => {
-    await workItemsService.restoreWorkItem(id);
+    await workItemsDataProvider.restoreWorkItem(id);
     notify("Restored");
     await loadItems();
   };
@@ -345,7 +347,7 @@ export const TasksWidget = ({
 
   const handleDeleteExistingAttachment = async (attachmentId: string) => {
     try {
-      await workItemsService.deleteAttachment(attachmentId);
+      await workItemsDataProvider.deleteAttachment(attachmentId);
       setExistingAttachments((prev) => prev.filter((attachment) => attachment.id !== attachmentId));
       notify("Attachment deleted");
     } catch {

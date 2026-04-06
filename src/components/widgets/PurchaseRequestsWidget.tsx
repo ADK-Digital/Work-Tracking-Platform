@@ -7,7 +7,7 @@ import {
   type PurchaseRequestStatus,
   type SortOption
 } from "../../types/workItem";
-import { workItemsService } from "../../services/workItemsService";
+import { getWorkItemsDataProvider } from "../../providers/data/workItemsDataProvider";
 import { loadOwnerDirectory, type OwnerDirectoryEntry } from "../../services/ownerDirectoryService";
 import { WidgetCard } from "./WidgetCard";
 import { Select } from "../ui/Select";
@@ -22,6 +22,8 @@ import { workItemMatchesOwnerIdentity } from "../../utils/ownerMatching";
 import { formatOwnerLabel, getOwnerDisplayName } from "../../utils/owners";
 
 type Filter = "all" | string;
+
+const workItemsDataProvider = getWorkItemsDataProvider();
 
 type FormState = {
   title: string;
@@ -80,7 +82,7 @@ export const PurchaseRequestsWidget = ({
   const loadItems = async () => {
     setLoading(true);
     try {
-      const data = await workItemsService.getWorkItems({
+      const data = await workItemsDataProvider.getWorkItems({
         type: "purchase_request",
         statusFilter: filter,
         sort,
@@ -173,7 +175,7 @@ export const PurchaseRequestsWidget = ({
     setModalOpen(true);
 
     try {
-      const nextAttachments = await workItemsService.listAttachments(item.id);
+      const nextAttachments = await workItemsDataProvider.listAttachments(item.id);
       setExistingAttachments(nextAttachments);
     } catch {
       setExistingAttachments([]);
@@ -223,11 +225,11 @@ export const PurchaseRequestsWidget = ({
 
     try {
       const workItemId = editing
-        ? (await workItemsService.updateWorkItem(editing.id, payload)).id
-        : (await workItemsService.createWorkItem(payload)).id;
+        ? (await workItemsDataProvider.updateWorkItem(editing.id, payload)).id
+        : (await workItemsDataProvider.createWorkItem(payload)).id;
 
       const uploadResults = await Promise.allSettled(
-        selectedAttachments.map((file) => workItemsService.uploadAttachment(workItemId, file)),
+        selectedAttachments.map((file) => workItemsDataProvider.uploadAttachment(workItemId, file)),
       );
       const failedUploads = uploadResults.filter((result) => result.status === "rejected").length;
 
@@ -246,26 +248,26 @@ export const PurchaseRequestsWidget = ({
   };
 
   const updateInline = async (id: string, patch: Partial<PurchaseRequestItem>) => {
-    await workItemsService.updateWorkItem(id, patch);
+    await workItemsDataProvider.updateWorkItem(id, patch);
     notify("Updated");
     await loadItems();
   };
 
   const handleComplete = async (id: string) => {
-    await workItemsService.completeWorkItem(id);
+    await workItemsDataProvider.completeWorkItem(id);
     notify("Completed");
     await loadItems();
   };
 
   const handleDelete = async (id: string) => {
-    await workItemsService.softDeleteWorkItem(id);
+    await workItemsDataProvider.softDeleteWorkItem(id);
     notify("Deleted");
     await loadItems();
   };
 
 
   const handleRestore = async (id: string) => {
-    await workItemsService.restoreWorkItem(id);
+    await workItemsDataProvider.restoreWorkItem(id);
     notify("Restored");
     await loadItems();
   };
@@ -282,7 +284,7 @@ export const PurchaseRequestsWidget = ({
 
   const handleDeleteExistingAttachment = async (attachmentId: string) => {
     try {
-      await workItemsService.deleteAttachment(attachmentId);
+      await workItemsDataProvider.deleteAttachment(attachmentId);
       setExistingAttachments((prev) => prev.filter((attachment) => attachment.id !== attachmentId));
       notify("Attachment deleted");
     } catch {

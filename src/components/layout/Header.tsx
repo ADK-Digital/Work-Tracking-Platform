@@ -5,10 +5,11 @@ import type { AuthUser } from "../../services/authService";
 interface HeaderProps {
   authUser?: AuthUser | null;
   onSignOut?: () => Promise<void>;
+  signInUrl?: string | null;
   headerActions?: ReactNode;
 }
 
-export const Header = ({ authUser, onSignOut, headerActions }: HeaderProps) => (
+export const Header = ({ authUser, onSignOut, signInUrl, headerActions }: HeaderProps) => (
   <header className="border-b border-slate-200 bg-white">
     <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
       <div>
@@ -24,14 +25,14 @@ export const Header = ({ authUser, onSignOut, headerActions }: HeaderProps) => (
               Sign out
             </Button>
           </>
-        ) : (
+        ) : signInUrl ? (
           <a
-            href="/auth/google"
+            href={signInUrl}
             className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
             Sign in
           </a>
-        )}
+        ) : null}
       </div>
     </div>
   </header>

@@ -12,6 +12,7 @@ import attachmentsRouter from './routes/attachments';
 import workItemsRouter from './routes/workItems';
 import ownersRouter from './routes/owners';
 import taskProjectOptionsRouter from './routes/taskProjectOptions';
+import organizationStateRouter from './routes/organizationState';
 
 dotenv.config();
 
@@ -211,6 +212,7 @@ app.get('/api/me', async (req, res, next) => {
 });
 app.use('/api', ownersRouter);
 app.use('/api', taskProjectOptionsRouter);
+app.use('/api', organizationStateRouter);
 app.use('/api', workItemsRouter);
 app.use('/api', attachmentsRouter);
 
